@@ -1,0 +1,668 @@
+import 'package:flutter/material.dart';
+import '../services/supabase_service.dart';
+
+class DashboardPage extends StatefulWidget {
+  const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  String _displayName = 'Guest User';
+  bool _isGuest = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserStatus();
+  }
+
+  void _checkUserStatus() {
+    final user = SupabaseService.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _isGuest = false;
+        // Mengambil metadata nama dari registrasi Supabase
+        _displayName =
+            user.userMetadata?['nama'] ??
+            user.userMetadata?['full_name'] ??
+            user.email?.split('@')[0] ??
+            'User';
+      });
+    } else {
+      setState(() {
+        _isGuest = true;
+        _displayName = 'Guest User';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Definisi Kode Warna Tema Pastel INFP sesuai Desain Referensi
+    const bgCream = Color(0xFFFFFBF7);
+    const purpleLight = Color(0xFFF3E3FC);
+    const purpleMain = Color(0xFF8E59B3);
+    const pinkLight = Color(0xFFFCE3EC);
+    const blueLight = Color(0xFFE3F4FC);
+    const blueMain = Color(0xFF4A90E2);
+    const textDark = Color(0xFF2D2132);
+    const textMuted = Color(0xFF7D6F83);
+
+    return Scaffold(
+      backgroundColor: bgCream,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ================= HAMPARAN HEADER (Sapaan & Notifikasi & Log Out) =================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Good Morning',
+                        style: TextStyle(
+                          color: textMuted,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _displayName,
+                        style: const TextStyle(
+                          color: textDark,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      // Tombol Notifikasi Putih Bersih
+                      _buildIconButton(
+                        Icons.notifications_none_rounded,
+                        textDark,
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Avatar Emoji Kanan Atas -> Berfungsi sebagai TOMBOL LOG OUT
+                      _buildIconButton(
+                        Icons.face_unlock_rounded,
+                        purpleMain,
+                        isAvatar: true,
+                        onTap: () async {
+                          if (!_isGuest) {
+                            // Jika bukan guest, hapus sesi login di Supabase
+                            await SupabaseService.instance.signOut();
+                          }
+                          if (!mounted) return;
+                          // Tendang kembali ke Landing Page ('/') dan bersihkan history halaman
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/',
+                            (route) => false,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // ================= KARTU UTAMA TIPE KEPRIBADIAN (MY TYPE) =================
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: purpleLight,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    // Gambar/Avatar Domba Menggemaskan di dalam Lingkaran Putih
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Text('🐑', style: TextStyle(fontSize: 44)),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'MY TYPE',
+                              style: TextStyle(
+                                color: purpleMain,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _isGuest ? '????' : 'INFP',
+                            style: const TextStyle(
+                              color: textDark,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              height: 1.1,
+                            ),
+                          ),
+                          Text(
+                            _isGuest ? 'Uji dirimu sekarang' : 'The Dreamer',
+                            style: const TextStyle(
+                              color: textMuted,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: textMuted.withOpacity(0.6),
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ================= BARISAN STATISTIK ANGKA (Matches, Tests, Cards) =================
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      '💖',
+                      _isGuest ? '-' : '24',
+                      'Matches',
+                      textDark,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildStatCard(
+                      '📋',
+                      _isGuest ? '0' : '5',
+                      'Tests',
+                      textDark,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildStatCard(
+                      '🎴',
+                      _isGuest ? '-' : '10',
+                      'Cards',
+                      textDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // ================= DUA TOMBOL AKSI BESAR (Take Test & Soul Match) =================
+              Row(
+                children: [
+                  // Tombol Ungu Pastel Lembut: Take Test
+                  Expanded(
+                    child: _buildActionCard(
+                      color: purpleLight,
+                      icon: Icons.bolt_rounded,
+                      iconColor: purpleMain,
+                      title: 'Take Test',
+                      subtitle: '25 questions',
+                      textColor: textDark,
+                      onTap: () {
+                        // Aksi buka halaman kuesioner tes MBTI Anda di sini
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Tombol Pink Pastel Lembut: Soul Match
+                  Expanded(
+                    child: _buildActionCard(
+                      color: pinkLight,
+                      icon: Icons.favorite_rounded,
+                      iconColor: Colors.redAccent,
+                      title: 'Soul Match',
+                      subtitle: 'Find your pair',
+                      textColor: textDark,
+                      onTap: _isGuest
+                          ? _showGuestWarning
+                          : () {
+                              // Aksi buka fitur Soul Match
+                            },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              // ================= DAFTAR REKOMENDASI/SOUL MATCHES =================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Soul Matches',
+                    style: TextStyle(
+                      color: textDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _isGuest ? _showGuestWarning : () {},
+                    child: const Text(
+                      'See all',
+                      style: TextStyle(
+                        color: purpleMain,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Konten Kondisional Horizontal List (Terkunci dengan gembok jika Guest)
+              _isGuest
+                  ? _buildLockedMatchesPlaceholder()
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _buildSoulMatchCard(
+                            '🐧',
+                            'INTP',
+                            'The Thinker',
+                            0.97,
+                            blueLight,
+                            blueMain,
+                            textDark,
+                          ),
+                          const SizedBox(width: 16),
+                          _buildSoulMatchCard(
+                            '🐑',
+                            'INFP',
+                            'The Dreamer',
+                            0.70,
+                            purpleLight,
+                            purpleMain,
+                            textDark,
+                          ),
+                          const SizedBox(width: 16),
+                          _buildSoulMatchCard(
+                            '🦊',
+                            'ENFJ',
+                            'The Protagonist',
+                            0.85,
+                            pinkLight,
+                            Colors.redAccent,
+                            textDark,
+                          ),
+                        ],
+                      ),
+                    ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+
+      // ================= ELEGAN PASTEL BOTTOM NAVIGATION BAR =================
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Colors.grey.shade100, width: 1),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: 0,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: purpleMain,
+          unselectedItemColor: Colors.grey.shade400,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 11,
+          ),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.analytics_outlined),
+              label: 'Test',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite_border_rounded),
+              label: 'Match',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.style_outlined),
+              label: 'Cards',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline_rounded),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget Pembantu: Membuat Tombol Putih Bulat di Atas dengan Efek Efek Click InkWell & Ripple
+  Widget _buildIconButton(
+    IconData icon,
+    Color color, {
+    bool isAvatar = false,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: isAvatar
+                ? const Text('😊', style: TextStyle(fontSize: 20))
+                : Icon(icon, color: color, size: 24),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget Pembantu: Komponen Kartu Mini Statistik Angka Tengah
+  Widget _buildStatCard(
+    String emoji,
+    String count,
+    String label,
+    Color textColor,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 6),
+          Text(
+            count,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget Pembantu: Komponen Dua Tombol Utama (Take Test / Soul Match)
+  Widget _buildActionCard({
+    required Color color,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 22),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: textColor.withOpacity(0.6),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget Pembantu: Komponen List Horizontal Kartu "Soul Matches" di Bagian Bawah
+  Widget _buildSoulMatchCard(
+    String emoji,
+    String mbti,
+    String description,
+    double matchPercentage,
+    Color cardBg,
+    Color progressColor,
+    Color textColor,
+  ) {
+    return Container(
+      width: 155,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 28)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            mbti,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              height: 1.1,
+            ),
+          ),
+          Text(
+            description,
+            style: TextStyle(
+              color: textColor.withOpacity(0.6),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: matchPercentage,
+              backgroundColor: Colors.white.withOpacity(0.5),
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${(matchPercentage * 100).toInt()}% match',
+            style: TextStyle(
+              color: progressColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Informasi Kosong / Tempat Penampung Gembok Jika User Masuk Sebagai Guest
+  Widget _buildLockedMatchesPlaceholder() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          const Text('🔒', style: TextStyle(fontSize: 28)),
+          const SizedBox(height: 8),
+          const Text(
+            'Fitur Terbatas untuk Guest',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D2132),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Silakan selesaikan tes pertama Anda atau daftarkan akun baru untuk melihat kecocokan kepribadian dengan orang lain.',
+            style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/login',
+              (route) => false,
+            ),
+            child: const Text(
+              'Login / Register Sekarang',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8E59B3),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Dialog Peringatan Jika Tamu (Guest) Mencoba Mengakses Fitur Terkunci
+  void _showGuestWarning() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Fitur ini memerlukan akun terdaftar. Yuk daftar dulu! 🔮',
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF8E59B3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: 'Daftar',
+          textColor: Colors.white,
+          onPressed: () => Navigator.pushNamed(context, '/register'),
+        ),
+      ),
+    );
+  }
+}
