@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/supabase_service.dart';
+import 'services/supabase_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -59,11 +59,9 @@ class _RegisterPageState extends State<RegisterPage>
 
     // Mengirimkan data pendaftaran ke Supabase tanpa nim dan jurusan
     final res = await SupabaseService.instance.register(
+      username: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      fullName: _nameController.text.trim(),
-      nim: '', // Dikosongkan karena input dihapus
-      jurusan: 'Umum', // Set default sebagai Umum
     );
 
     if (!mounted) return;

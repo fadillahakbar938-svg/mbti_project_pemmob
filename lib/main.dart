@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'landing_page.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 import 'dashboard_page.dart'; // Memastikan dashboard_page sudah terimport
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://ycskqtrbzmfsugyxpldm.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljc2txdHJiem1mc3VneXhwbGRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjgxNzUsImV4cCI6MjA5NTYwNDE3NX0.yuygyDeXGd4A3r0-rZC5w5B2G6aOq_VY2CkwrKrSCtU',
+  );
+
   runApp(const MyApp());
 }
 
