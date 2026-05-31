@@ -147,6 +147,171 @@ class SupabaseService {
       onConflict: 'user_id,question_id',
     );
   }
+
+  Future<List<Map<String, dynamic>>> getUserAnswers(
+    String userId,
+  ) async {
+
+    final response =
+        await _client
+            .from('answers')
+            .select('''
+              answer_value,
+              questions(
+                target
+              )
+            ''')
+            .eq('user_id', userId);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<Map<String, dynamic>> calculateMbti(
+    String userId,
+  ) async {
+
+    final answers =
+        await getUserAnswers(userId);
+
+    int e = 0;
+    int i = 0;
+    int s = 0;
+    int n = 0;
+    int t = 0;
+    int f = 0;
+    int j = 0;
+    int p = 0;
+
+    for(final item in answers){
+
+      final target =
+          item['questions']['target'];
+
+      final int score =
+          (item['answer_value'] as num).toInt();
+
+      switch(target){
+
+        case 'E':
+          e += score;
+          break;
+
+        case 'I':
+          i += score;
+          break;
+
+        case 'S':
+          s += score;
+          break;
+
+        case 'N':
+          n += score;
+          break;
+
+        case 'T':
+          t += score;
+          break;
+
+        case 'F':
+          f += score;
+          break;
+
+        case 'J':
+          j += score;
+          break;
+
+        case 'P':
+          p += score;
+          break;
+      }
+    }
+
+    double percentage(int a, int b) {
+      return a / (a + b) * 100;
+    }
+
+    final ePercent = percentage(e, i);
+    final iPercent = percentage(i, e);
+
+    final sPercent = percentage(s, n);
+    final nPercent = percentage(n, s);
+
+    final tPercent = percentage(t, f);
+    final fPercent = percentage(f, t);
+
+    final jPercent = percentage(j, p);
+    final pPercent = percentage(p, j);
+
+    final mbti =
+        (e >= i ? 'E' : 'I') +
+        (s >= n ? 'S' : 'N') +
+        (t >= f ? 'T' : 'F') +
+        (j >= p ? 'J' : 'P');
+
+    return {
+      'mbti_type': mbti,
+
+      'score_e': e,
+      'score_i': i,
+
+      'score_s': s,
+      'score_n': n,
+
+      'score_t': t,
+      'score_f': f,
+
+      'score_j': j,
+      'score_p': p,
+
+      'e_percent': ePercent,
+      'i_percent': iPercent,
+
+      's_percent': sPercent,
+      'n_percent': nPercent,
+
+      't_percent': tPercent,
+      'f_percent': fPercent,
+
+      'j_percent': jPercent,
+      'p_percent': pPercent,
+    };
+    
+  }
+
+  Future<void> saveResult({
+    required String userId,
+    required Map<String,dynamic> result,
+  }) async {
+
+    // update users
+    await _client
+        .from('users')
+        .update({
+          'mbti_type': result['mbti_type'],
+        })
+        .eq('id', userId);
+
+    await _client
+        .from('results')
+        .insert({
+
+      'user_id': userId,
+
+      'mbti_type':
+          result['mbti_type'],
+
+      'score_e': result['score_e'],
+      'score_i': result['score_i'],
+      'score_s': result['score_s'],
+      'score_n': result['score_n'],
+      'score_t': result['score_t'],
+      'score_f': result['score_f'],
+      'score_j': result['score_j'],
+      'score_p': result['score_p'],
+    });
+  }
+
+  
 }
 
 
