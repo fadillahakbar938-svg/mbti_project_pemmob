@@ -94,7 +94,10 @@ class _LandingPageState extends State<LandingPage>
           ),
         ),
       );
+      return;
     }
+
+    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override
@@ -110,7 +113,7 @@ class _LandingPageState extends State<LandingPage>
           // Background Gradasi Pastel Lembut yang Bergerak Mandiri
           AnimatedBuilder(
             animation: _bgController,
-            builder: (_, __) => Container(
+            builder: (_, _) => Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -161,7 +164,7 @@ class _LandingPageState extends State<LandingPage>
                       _entryController,
                       _floatController,
                     ]),
-                    builder: (_, __) => Transform.translate(
+                    builder: (_, _) => Transform.translate(
                       offset: Offset(0, _floatAnim.value),
                       child: Transform.scale(
                         scale: _logoEntry.value,
@@ -176,7 +179,7 @@ class _LandingPageState extends State<LandingPage>
                   // Judul dan Deskripsi Aplikasi Baru
                   AnimatedBuilder(
                     animation: _entryController,
-                    builder: (_, __) => Opacity(
+                    builder: (_, _) => Opacity(
                       opacity: _titleEntry.value,
                       child: Transform.translate(
                         offset: Offset(0, (1 - _titleEntry.value) * 20),
@@ -213,7 +216,7 @@ class _LandingPageState extends State<LandingPage>
                   // Kapsul Fitur Berwarna Pastel Serasi
                   AnimatedBuilder(
                     animation: _entryController,
-                    builder: (_, __) => Opacity(
+                    builder: (_, _) => Opacity(
                       opacity: _subtitleEntry.value,
                       child: Wrap(
                         alignment: WrapAlignment.center,
@@ -231,7 +234,7 @@ class _LandingPageState extends State<LandingPage>
                   // Kelompok Tombol Navigasi Utama
                   AnimatedBuilder(
                     animation: _entryController,
-                    builder: (_, __) => Opacity(
+                    builder: (_, _) => Opacity(
                       opacity: _buttonsEntry.value,
                       child: Transform.translate(
                         offset: Offset(0, (1 - _buttonsEntry.value) * 40),

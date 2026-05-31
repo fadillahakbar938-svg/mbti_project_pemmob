@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
+import 'custom_bottom_navbar.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -11,6 +12,8 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String _displayName = 'Guest User';
   bool _isGuest = true;
+  String? _profilePicture;
+  String? _mbtiType;
 
   @override
   void initState() {
@@ -23,17 +26,26 @@ class _DashboardPageState extends State<DashboardPage> {
     if (user != null) {
       setState(() {
         _isGuest = false;
-        // Mengambil metadata nama dari registrasi Supabase
+        // Prioritaskan username dari tabel users, lalu full_name, lalu email local-part.
         _displayName =
+            user.userMetadata?['username'] ??
             user.userMetadata?['nama'] ??
             user.userMetadata?['full_name'] ??
             user.email?.split('@')[0] ??
             'User';
+
+        // Load profile picture jika ada
+        _profilePicture = user.userMetadata?['profile_picture'] as String?;
+
+        // Load MBTI type jika ada
+        _mbtiType = user.userMetadata?['mbti_type'] as String?;
       });
     } else {
       setState(() {
         _isGuest = true;
         _displayName = 'Guest User';
+        _profilePicture = null;
+        _mbtiType = null;
       });
     }
   }
@@ -94,10 +106,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       const SizedBox(width: 12),
 
                       // Avatar Emoji Kanan Atas -> Berfungsi sebagai TOMBOL LOG OUT
-                      _buildIconButton(
-                        Icons.face_unlock_rounded,
-                        purpleMain,
-                        isAvatar: true,
+                      _buildAvatarButton(
+                        profilePicture: _profilePicture,
                         onTap: () async {
                           if (!_isGuest) {
                             // Jika bukan guest, hapus sesi login di Supabase
@@ -166,7 +176,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            _isGuest ? '????' : 'INFP',
+                            _mbtiType == null ? '????' : _mbtiType!,
                             style: const TextStyle(
                               color: textDark,
                               fontSize: 32,
@@ -175,7 +185,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                           Text(
-                            _isGuest ? 'Uji dirimu sekarang' : 'The Dreamer',
+                            _mbtiType == null
+                                ? 'Uji dirimu sekarang'
+                                : 'The Dreamer',
                             style: const TextStyle(
                               color: textMuted,
                               fontSize: 14,
@@ -340,51 +352,59 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
 
       // ================= ELEGAN PASTEL BOTTOM NAVIGATION BAR =================
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Colors.grey.shade100, width: 1),
+      bottomNavigationBar: const CustomBottomNavbar(
+        currentIndex: 0,
+      ),
+         
+    );
+  }
+
+  // Widget Pembantu: Membuat Avatar Button dengan Profile Picture atau Default Emoji
+  Widget _buildAvatarButton({String? profilePicture, VoidCallback? onTap}) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 0,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: purpleMain,
-          unselectedItemColor: Colors.grey.shade400,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: profilePicture != null && profilePicture.isNotEmpty
+                ? ClipOval(
+                    child: Image.network(
+                      profilePicture,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildDefaultAvatarPlaceholder();
+                      },
+                    ),
+                  )
+                : _buildDefaultAvatarPlaceholder(),
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 11,
-          ),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_filled),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.analytics_outlined),
-              label: 'Test',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border_rounded),
-              label: 'Match',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.style_outlined),
-              label: 'Cards',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              label: 'Profile',
-            ),
-          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDefaultAvatarPlaceholder() {
+    return Container(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFFE8E8E8),
+      ),
+      child: const Icon(Icons.person, color: Color(0xFF9E9E9E), size: 24),
     );
   }
 

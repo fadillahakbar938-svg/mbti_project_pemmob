@@ -6,13 +6,6 @@ class AuthResult {
   AuthResult({required this.success, this.errorMessage});
 }
 
-// class SupabaseUser {
-//   final Map<String, dynamic>? userMetadata;
-//   final String? email;
-
-//   SupabaseUser({this.userMetadata, this.email});
-// }
-
 class SupabaseService {
   SupabaseService._();
 
@@ -101,11 +94,25 @@ class SupabaseService {
     }
   }
 
-  Future<AuthResult> loginWithGoogle() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // For now, simulate success
-    return AuthResult(success: true);
-  }
+  // Future<AuthResult> loginWithGoogle() async {
+  //   try {
+  //     await _client.auth.signInWithOAuth(Provider.google);
+  //     await _restoreSession();
+  //     if (_currentUser == null) {
+  //       return AuthResult(
+  //         success: false,
+  //         errorMessage:
+  //             'Login Google berhasil, tetapi profil pengguna tidak ditemukan.',
+  //       );
+  //     }
+  //     return AuthResult(success: true);
+  //   } catch (error) {
+  //     return AuthResult(
+  //       success: false,
+  //       errorMessage: 'Login Google gagal: ${error.toString()}',
+  //     );
+  //   }
+  // }
 
   Future<void> signOut() async {
     await client.auth.signOut();
