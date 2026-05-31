@@ -10,7 +10,83 @@ class QuestionPage extends StatefulWidget {
 
 class _QuestionPageState extends State<QuestionPage> {
 
+  @override
+void initState() {
+  super.initState();
+
+  answers = List.filled(
+    questions.length,
+    0,
+  );
+}
+
+  //kumpulan variabel
+  List<int> answers = [];
   int selectedScore = 0;
+  int currentQuestion = 0;
+
+
+
+  //function pop up dialog untuk konfirmasi sebelum keluar dari tes
+  Future<void> showExitDialog() async {
+
+  final result = await showDialog<bool>(
+    context: context,
+
+    builder: (context) {
+      return AlertDialog(
+
+        title: const Text(
+          "Keluar Tes?"
+        ),
+
+        content: const Text(
+          "Apakah Anda yakin ingin keluar dari tes MBTI? Progress yang belum disimpan akan hilang."
+        ),
+
+        actions: [
+
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, false);
+            },
+            child: const Text("Batal"),
+          ),
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, true);
+            },
+            child: const Text("Keluar"),
+          ),
+
+        ],
+      );
+    },
+  );
+
+  if(result == true){
+
+    Navigator.pushReplacementNamed(
+      context,
+      '/home',
+    );
+
+  }
+}
+
+//function untuk back ke soal sebelumnya
+void previousQuestion() {
+
+  if(currentQuestion > 0){
+
+    setState(() {
+      currentQuestion--;
+    });
+
+  }
+
+}
 
   final List<Map<String, dynamic>> scores = [
   {
@@ -43,7 +119,7 @@ class _QuestionPageState extends State<QuestionPage> {
   },
 ];
 
-  int currentQuestion = 0;
+//function untuk next ke soal berikutnya
 
   void nextQuestion(){
 
@@ -52,6 +128,7 @@ class _QuestionPageState extends State<QuestionPage> {
 
       setState(() {
         currentQuestion++;
+        selectedScore = 0;
       });
 
     }else{
@@ -61,6 +138,136 @@ class _QuestionPageState extends State<QuestionPage> {
     }
 
   }
+
+  //function untuk menyimpan jawaban dan lanjut ke soal berikutnya
+  void saveAnswer() {
+
+  if(selectedScore == 0){
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Pilih jawaban terlebih dahulu"
+        ),
+      ),
+    );
+
+    return;
+  }
+
+  // simpan jawaban
+  answers[currentQuestion] = selectedScore;
+
+  // lanjut soal berikutnya
+  nextQuestion();
+}
+
+//function untuk menampilkan daftar soal
+void showQuestionList() {
+
+  showModalBottomSheet(
+
+    context: context,
+
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(25),
+      ),
+    ),
+
+    builder: (context) {
+
+      return Padding(
+        padding: const EdgeInsets.all(20),
+
+        child: Column(
+
+          mainAxisSize: MainAxisSize.min,
+
+          children: [
+
+            const Text(
+              "Daftar Soal",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+
+              children: List.generate(
+                questions.length,
+
+                (index) {
+
+                  bool answered =
+                      answers[index] != 0;
+
+                  return GestureDetector(
+
+                    onTap: () {
+
+                      Navigator.pop(context);
+
+                      setState(() {
+
+                        currentQuestion =
+                            index;
+
+                        selectedScore =
+                            answers[index];
+
+                      });
+                    },
+
+                    child: Container(
+
+                      width: 50,
+                      height: 50,
+
+                      decoration: BoxDecoration(
+
+                        color: index ==
+                                currentQuestion
+                            ? const Color(
+                                0xffA162C5)
+                            : answered
+                                ? Colors.green
+                                : Colors.grey.shade300,
+
+                        borderRadius:
+                            BorderRadius.circular(
+                                15),
+                      ),
+
+                      child: Center(
+                        child: Text(
+
+                          "${index + 1}",
+
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight:
+                                FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -76,70 +283,128 @@ class _QuestionPageState extends State<QuestionPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              /// TOP BAR
-              Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                   /// TOP BAR
+                    Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                 children: [
 
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 4,
-                          color: Colors.black12,
-                          offset: Offset(0,3),
-                        )
-                      ],
-                    ),
+                  /// LEFT BUTTONS
+                  Row(
+                    children: [
 
-                    child: Icon(
-                      Icons.arrow_back,
-                    ),
+                      /// EXIT TEST
+                      GestureDetector(
+                        onTap: showExitDialog,
+
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: const [
+                              BoxShadow(
+                                blurRadius: 4,
+                                color: Colors.black12,
+                                offset: Offset(0, 3),
+                              )
+                            ],
+                          ),
+
+                          child: const Icon(
+                            Icons.close,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      /// PREVIOUS QUESTION
+                      GestureDetector(
+                        onTap: currentQuestion == 0
+                            ? null
+                            : previousQuestion,
+
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+
+                          decoration: BoxDecoration(
+                            color: currentQuestion == 0
+                                ? Colors.grey.shade200
+                                : Colors.white,
+
+                            borderRadius:
+                                BorderRadius.circular(30),
+
+                            boxShadow: [
+                              BoxShadow(
+                                blurRadius: 4,
+                                color: Colors.black12,
+                                offset: const Offset(0, 3),
+                              )
+                            ],
+                          ),
+
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 18,
+
+                            color: currentQuestion == 0
+                                ? Colors.grey
+                                : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
 
-                  Text(
-                     "${currentQuestion+1}/${questions.length}",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
-                  ),
+                    /// QUESTION NUMBER
+                    Text(
+                      "${currentQuestion + 1}/${questions.length}",
 
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10),
-
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 4,
-                          color: Colors.black12,
-                          offset: Offset(0,3),
-                        )
-                      ],
-                    ),
-
-                    child: Text(
-                      "skip",
-                      style: TextStyle(
-                        color: Color(0xffA162C5),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.grey,
                       ),
                     ),
-                  ),
-                ],
-              ),
+
+                    /// SKIP BUTTON
+                    GestureDetector(
+                      onTap: nextQuestion,
+
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: const [
+                            BoxShadow(
+                              blurRadius: 4,
+                              color: Colors.black12,
+                              offset: Offset(0, 3),
+                            )
+                          ],
+                        ),
+
+                        child: const Text(
+                          "Skip",
+                          style: TextStyle(
+                            color: Color(0xffA162C5),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
 
               const SizedBox(height: 20),
 
@@ -170,25 +435,59 @@ class _QuestionPageState extends State<QuestionPage> {
               const SizedBox(height: 25),
 
               /// CATEGORY
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10),
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
 
-                decoration: BoxDecoration(
-                  color: Color(0xffEEDCF4),
-                  borderRadius:
-                      BorderRadius.circular(20),
-                ),
+                children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10),
 
-                child: Text(
-                  "${questions[currentQuestion]["category"]}",
-                  style: TextStyle(
-                    color: Color(0xffA162C5),
-                    fontWeight: FontWeight.bold,
+                      decoration: BoxDecoration(
+                        color: Color(0xffEEDCF4),
+                        borderRadius:
+                            BorderRadius.circular(20),
+                      ),
+
+                      child: Text(
+                        "${questions[currentQuestion]["category"]}",
+                        style: TextStyle(
+                          color: Color(0xffA162C5),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                  GestureDetector(
+                    onTap: showQuestionList,
+
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(15),
+
+                        boxShadow: const [
+                          BoxShadow(
+                            blurRadius: 3,
+                            color: Colors.black12,
+                          )
+                        ],
+                      ),
+
+                      child: const Icon(
+                        Icons.list_alt_rounded,
+                        color: Color(0xffA162C5),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
+            
 
               const SizedBox(height: 20),
 
@@ -332,7 +631,7 @@ class _QuestionPageState extends State<QuestionPage> {
 
               /// NEXT BUTTON
               GestureDetector(
-              onTap: nextQuestion,
+              onTap: saveAnswer,
 
               child: Container(
                 height: 60,
@@ -349,7 +648,7 @@ class _QuestionPageState extends State<QuestionPage> {
                   children: [
 
                     Text(
-                      "Next",
+                      "Simpan",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -360,7 +659,7 @@ class _QuestionPageState extends State<QuestionPage> {
                     SizedBox(width: 15),
 
                     Icon(
-                      Icons.arrow_forward,
+                      Icons.check,
                       color: Colors.white,
                     ),
                   ],
