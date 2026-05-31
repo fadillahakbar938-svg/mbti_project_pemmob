@@ -197,7 +197,7 @@ void previousQuestion() {
 
 
   await SupabaseService.instance.saveAnswer(
-    userId: user!.id,
+    userId: user.id,
     questionId:
         questions[currentQuestion]["id"],
     answerValue: selectedScore,
