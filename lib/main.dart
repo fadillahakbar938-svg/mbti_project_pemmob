@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'services/supabase_service.dart';
 import 'landing_page.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 import 'dashboard_page.dart'; // Memastikan dashboard_page sudah terimport
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.instance.initialize();
   runApp(const MyApp());
 }
 
