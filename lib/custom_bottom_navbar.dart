@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'dashboard_page.dart';
+import 'test_intro_page.dart';
 import 'question_page.dart';
 // import 'match_page.dart';
 // import 'cards_page.dart';
@@ -42,7 +43,7 @@ class CustomBottomNavbar extends StatelessWidget {
             break;
 
           case 1:
-            page = const QuestionPage();
+            page = const TestIntroPage();
             break;
 
           // case 2:
