@@ -15,10 +15,6 @@ class SupabaseService {
 
   User? get currentUser => _client.auth.currentUser;
 
-  Future<void> _restoreSession() async {
-    return;
-  }
-
   Future<AuthResult> login({
     required String email,
     required String password,
