@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../data/mbti_questions.dart';
+import 'services/supabase_service.dart';
+
 
 class QuestionPage extends StatefulWidget {
   const QuestionPage({super.key});
@@ -9,15 +10,32 @@ class QuestionPage extends StatefulWidget {
 }
 
 class _QuestionPageState extends State<QuestionPage> {
+  List<Map<String, dynamic>> questions = [];
 
-  @override
+  bool isLoading = true;
+  Future<void> loadQuestions() async {
+    final data =
+        await SupabaseService.instance.getQuestions();
+
+    setState(() {
+
+      questions = data;
+
+      answers = List.filled(
+        data.length,
+        0,
+      );
+
+      isLoading = false;
+
+    });
+  }
+
+@override
 void initState() {
   super.initState();
 
-  answers = List.filled(
-    questions.length,
-    0,
-  );
+  loadQuestions();
 }
 
   //kumpulan variabel
@@ -128,7 +146,8 @@ void previousQuestion() {
 
       setState(() {
         currentQuestion++;
-        selectedScore = 0;
+        selectedScore =
+            answers[currentQuestion];
       });
 
     }else{
@@ -140,7 +159,7 @@ void previousQuestion() {
   }
 
   //function untuk menyimpan jawaban dan lanjut ke soal berikutnya
-  void saveAnswer() {
+  Future<void> saveAnswer() async {
 
   if(selectedScore == 0){
 
@@ -158,7 +177,32 @@ void previousQuestion() {
   // simpan jawaban
   answers[currentQuestion] = selectedScore;
 
-  // lanjut soal berikutnya
+  final user =
+      SupabaseService
+          .instance
+          .currentUser;
+
+  if(user == null){
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Sesi login telah berakhir, silakan login kembali."
+        ),
+      ),
+    );
+
+    return;
+  }
+
+
+  await SupabaseService.instance.saveAnswer(
+    userId: user!.id,
+    questionId:
+        questions[currentQuestion]["id"],
+    answerValue: selectedScore,
+  );
+
   nextQuestion();
 }
 
@@ -176,93 +220,94 @@ void showQuestionList() {
     ),
 
     builder: (context) {
+      return SizedBox(
+        height: MediaQuery.of(context).size.height * 0.8,
 
-      return Padding(
-        padding: const EdgeInsets.all(20),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
 
-        child: Column(
+          child: Column(
+            children: [
 
-          mainAxisSize: MainAxisSize.min,
-
-          children: [
-
-            const Text(
-              "Daftar Soal",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+              const Text(
+                "Daftar Soal",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              Expanded(
+                child: GridView.builder(
+                  itemCount: questions.length,
 
-              children: List.generate(
-                questions.length,
+                  gridDelegate:
+                  SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: MediaQuery.of(context).size.width > 700 ? 10 : 5,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1,
+                  ),
 
-                (index) {
+                  itemBuilder: (context, index) {
 
-                  bool answered =
-                      answers[index] != 0;
+                    bool answered =
+                        answers[index] != 0;
 
-                  return GestureDetector(
+                    return GestureDetector(
 
-                    onTap: () {
+                      onTap: () {
 
-                      Navigator.pop(context);
+                        Navigator.pop(context);
 
-                      setState(() {
+                        setState(() {
 
-                        currentQuestion =
-                            index;
+                          currentQuestion =
+                              index;
 
-                        selectedScore =
-                            answers[index];
+                          selectedScore =
+                              answers[index];
 
-                      });
-                    },
+                        });
+                      },
 
-                    child: Container(
+                      child: Container(
 
-                      width: 50,
-                      height: 50,
+                        decoration: BoxDecoration(
 
-                      decoration: BoxDecoration(
+                          color: index ==
+                                  currentQuestion
+                              ? const Color(0xffA162C5)
+                              : answered
+                                  ? Colors.green
+                                  : Colors.grey.shade300,
 
-                        color: index ==
-                                currentQuestion
-                            ? const Color(
-                                0xffA162C5)
-                            : answered
-                                ? Colors.green
-                                : Colors.grey.shade300,
+                          borderRadius:
+                              BorderRadius.circular(10),
+                        ),
 
-                        borderRadius:
-                            BorderRadius.circular(
-                                15),
-                      ),
+                        child: Center(
+                          child: Text(
 
-                      child: Center(
-                        child: Text(
+                            "${index + 1}",
 
-                          "${index + 1}",
-
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight:
-                                FontWeight.bold,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight:
+                                  FontWeight.bold,
+                                  fontSize: 14,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     },
@@ -271,6 +316,13 @@ void showQuestionList() {
 
   @override
   Widget build(BuildContext context) {
+    if(isLoading){
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return Scaffold(
 
       backgroundColor: const Color(0xffF4EFEB),
@@ -411,7 +463,7 @@ void showQuestionList() {
               /// PROGRESS BAR
               Row(
                 children: List.generate(
-                  25,
+                  questions.length,
                   (index) => Expanded(
                     child: Container(
                       margin:
@@ -420,7 +472,7 @@ void showQuestionList() {
                       height: 8,
 
                       decoration: BoxDecoration(
-                        color: index == 0
+                        color: index <= currentQuestion
                             ? Color(0xffA162C5)
                             : Color(0xffE7CFF2),
 
@@ -434,32 +486,12 @@ void showQuestionList() {
 
               const SizedBox(height: 25),
 
-              /// CATEGORY
+              /// LIST QUESTIONS
               Row(
                 mainAxisAlignment:
                     MainAxisAlignment.spaceBetween,
 
                 children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10),
-
-                      decoration: BoxDecoration(
-                        color: Color(0xffEEDCF4),
-                        borderRadius:
-                            BorderRadius.circular(20),
-                      ),
-
-                      child: Text(
-                        "${questions[currentQuestion]["category"]}",
-                        style: TextStyle(
-                          color: Color(0xffA162C5),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
                   GestureDetector(
                     onTap: showQuestionList,
 

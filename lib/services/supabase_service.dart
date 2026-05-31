@@ -120,6 +120,33 @@ class SupabaseService {
   Future<void> signOut() async {
     await _client.auth.signOut();
   }
+
+  Future<List<Map<String, dynamic>>> getQuestions() async {
+    final response =
+        await _client
+            .from('questions')
+            .select()
+            .order('id');
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<void> saveAnswer({
+    required String userId,
+    required int questionId,
+    required int answerValue,
+  }) async {
+
+    await _client
+        .from('answers')
+        .upsert({
+      'user_id': userId,
+      'question_id': questionId,
+      'answer_value': answerValue,
+    },
+      onConflict: 'user_id,question_id',
+    );
+  }
 }
 
 
