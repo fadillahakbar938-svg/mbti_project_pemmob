@@ -9,18 +9,22 @@ class AuthResult {
 class SupabaseService {
   SupabaseService._();
 
-  static final SupabaseService instance =   SupabaseService._();
+  static final SupabaseService instance = SupabaseService._();
 
-  final client = Supabase.instance.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  User? get currentUser => client.auth.currentUser;
+  User? get currentUser => _client.auth.currentUser;
+
+  Future<void> _restoreSession() async {
+    return;
+  }
 
   Future<AuthResult> login({
     required String email,
     required String password,
   }) async {
     try {
-      await client.auth.signInWithPassword(
+      await _client.auth.signInWithPassword(
         email: email,
         password: password,
       );
@@ -46,7 +50,7 @@ class SupabaseService {
     try {
       print("STEP 1");
       final response =
-          await client.auth.signUp(
+          await _client.auth.signUp(
         email: email,
         password: password,
       );
@@ -65,7 +69,7 @@ class SupabaseService {
         );
       }
 
-      await client
+      await _client
           .from('users')
           .insert({
         'id': user.id,
@@ -94,28 +98,31 @@ class SupabaseService {
     }
   }
 
-  // Future<AuthResult> loginWithGoogle() async {
-  //   try {
-  //     await _client.auth.signInWithOAuth(Provider.google);
-  //     await _restoreSession();
-  //     if (_currentUser == null) {
-  //       return AuthResult(
-  //         success: false,
-  //         errorMessage:
-  //             'Login Google berhasil, tetapi profil pengguna tidak ditemukan.',
-  //       );
-  //     }
-  //     return AuthResult(success: true);
-  //   } catch (error) {
-  //     return AuthResult(
-  //       success: false,
-  //       errorMessage: 'Login Google gagal: ${error.toString()}',
-  //     );
-  //   }
-  // }
+  Future<AuthResult> loginWithGoogle() async {
+    // try {
+    //   await _client.auth.signInWithOAuth(
+    //     Provider.google,
+    //   );
+
+    //   return AuthResult(
+    //     success: true,
+    //   );
+
+    // } catch (error) {
+    //   return AuthResult(
+    //     success: false,
+    //     errorMessage:
+    //         'Login Google gagal: ${error.toString()}',
+    //   );
+    // }
+    return AuthResult(
+      success: false,
+      errorMessage: 'Login Google belum diaktifkan',
+    );
+  }
 
   Future<void> signOut() async {
-    await client.auth.signOut();
+    await _client.auth.signOut();
   }
 }
 
