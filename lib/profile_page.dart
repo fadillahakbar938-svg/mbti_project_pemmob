@@ -35,8 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
   static const Map<String, String> _mbtiQuotes = {
     'INFP':
         '"Seseorang yang idealis, setia pada prinsip, dan selalu melihat potensi kebaikan pada orang lain."',
-    'INTP':
-        '"Analitis, ingin tahu, dan senang mengeksplorasi ide-ide baru."',
+    'INTP': '"Analitis, ingin tahu, dan senang mengeksplorasi ide-ide baru."',
     'ISTJ':
         '"Praktis, dapat diandalkan, dan menghargai ketertiban serta tradisi."',
   };
@@ -48,8 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _joinedText = '';
   String _mbtiLabel = 'UNKNOWN';
   String _tagline = 'Belum ada tipe';
-  String _quote =
-      'Selesaikan tes MBTI untuk melihat ringkasan kepribadianmu.';
+  String _quote = 'Selesaikan tes MBTI untuk melihat ringkasan kepribadianmu.';
   String? _profilePictureUrl;
   Map<String, double> _indicators = const {};
 
@@ -68,8 +66,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     try {
-      final profile =
-          await SupabaseService.instance.getUserProfile(authUser.id);
+      final profile = await SupabaseService.instance.getUserProfile(
+        authUser.id,
+      );
 
       Map<String, dynamic>? result;
       try {
@@ -95,10 +94,9 @@ class _ProfilePageState extends State<ProfilePage> {
         _joinedText = _formatJoinedDate(profile?['created_at']);
         _mbtiLabel = mbtiLabel;
         _tagline = _mbtiTaglines[mbtiLabel] ?? 'Personality Type';
-        _quote = _mbtiQuotes[mbtiLabel] ??
-            (mbtiLabel != 'UNKNOWN'
-                ? 'Kamu adalah tipe $mbtiLabel.'
-                : _quote);
+        _quote =
+            _mbtiQuotes[mbtiLabel] ??
+            (mbtiLabel != 'UNKNOWN' ? 'Kamu adalah tipe $mbtiLabel.' : _quote);
         _profilePictureUrl = profile?['profile_picture'] as String?;
         _indicators = _indicatorsFromResult(result);
       });
@@ -113,11 +111,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  String _resolveDisplayName(
-    Map<String, dynamic>? profile,
-    String? email,
-  ) {
-    final fromDb = profile?['full_name'] ??
+  String _resolveDisplayName(Map<String, dynamic>? profile, String? email) {
+    final fromDb =
+        profile?['full_name'] ??
         profile?['name'] ??
         profile?['nama'] ??
         profile?['username'];
@@ -149,8 +145,8 @@ class _ProfilePageState extends State<ProfilePage> {
       return (n > 1 ? n / 100 : n).clamp(0.0, 1.0);
     }
 
-    final hasPercents = result.containsKey('e_percent') ||
-        result.containsKey('i_percent');
+    final hasPercents =
+        result.containsKey('e_percent') || result.containsKey('i_percent');
 
     if (hasPercents) {
       return {
@@ -171,14 +167,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (ei == 0 && sn == 0) return const {};
 
     return {
-      if (ei > 0) ...{
-        'Introverted (I)': i / ei,
-        'Extroverted (E)': e / ei,
-      },
-      if (sn > 0) ...{
-        'Intuitive (N)': n / sn,
-        'Sensing (S)': s / sn,
-      },
+      if (ei > 0) ...{'Introverted (I)': i / ei, 'Extroverted (E)': e / ei},
+      if (sn > 0) ...{'Intuitive (N)': n / sn, 'Sensing (S)': s / sn},
     };
   }
 
@@ -189,9 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_loading) {
       return const Scaffold(
         body: SafeArea(
-          child: Center(
-            child: CircularProgressIndicator(color: _primaryColor),
-          ),
+          child: Center(child: CircularProgressIndicator(color: _primaryColor)),
         ),
       );
     }
@@ -416,9 +404,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ],
                       ),
                     ),
-                    SizedBox(
-                      height: MediaQuery.paddingOf(context).bottom + 72,
-                    ),
+                    SizedBox(height: MediaQuery.paddingOf(context).bottom + 72),
                   ],
                 ),
               ),
@@ -432,8 +418,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildAvatar() {
     final url = _profilePictureUrl;
-    final hasImage =
-        url != null && url.isNotEmpty && url != 'default.png';
+    final hasImage = url != null && url.isNotEmpty && url != 'default.png';
 
     return Container(
       width: 74,
@@ -447,11 +432,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ? Image.network(
               url,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.person,
-                size: 42,
-                color: Colors.grey,
-              ),
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.person, size: 42, color: Colors.grey),
             )
           : const Icon(Icons.person, size: 42, color: Colors.grey),
     );

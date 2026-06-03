@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'cards_page.dart';
 import 'dashboard_page.dart';
 import 'test_intro_page.dart';
 import 'soul_match_page.dart';
-
-// import 'cards_page.dart';
-// import 'profile_page.dart';
+import 'cards_page.dart';
+import 'profile_page.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -46,13 +44,13 @@ class CustomBottomNavbar extends StatelessWidget {
               page = const SoulMatchPage();
               break;
 
-            // case 3:
-            //   page = const CardsPage();
-            //   break;
+            case 3:
+              page = const CardsPage();
+              break;
 
-            // case 4:
-            //   page = const ProfilePage();
-            //   break;
+            case 4:
+              page = const ProfilePage();
+              break;
 
             default:
               page = const DashboardPage();

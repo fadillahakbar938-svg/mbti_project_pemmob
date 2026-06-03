@@ -16,7 +16,7 @@ class FriendSuggestion {
 }
 
 class AddFriendPage extends StatefulWidget {
-  const AddFriendPage({Key? key}) : super(key: key);
+  const AddFriendPage({super.key});
 
   @override
   State<AddFriendPage> createState() => _AddFriendPageState();
@@ -111,9 +111,12 @@ class _AddFriendPageState extends State<AddFriendPage> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: filteredSuggestions.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 20),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 20),
                         itemBuilder: (context, index) {
-                          return _buildFriendSuggestionCard(filteredSuggestions[index]);
+                          return _buildFriendSuggestionCard(
+                            filteredSuggestions[index],
+                          );
                         },
                       ),
 
@@ -127,9 +130,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
       ),
 
       // Bottom Navigation Bar matching the flow
-      bottomNavigationBar: const CustomBottomNavbar(
-        currentIndex: 2,
-      ),
+      bottomNavigationBar: const CustomBottomNavbar(currentIndex: 2),
     );
   }
 
@@ -140,7 +141,9 @@ class _AddFriendPageState extends State<AddFriendPage> {
         color: const Color(0xFFFAF6F0),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: const Color(0xFF1E1E1E), // Slightly darker thin border as in the screenshot
+          color: const Color(
+            0xFF1E1E1E,
+          ), // Slightly darker thin border as in the screenshot
           width: 1.5,
         ),
       ),
@@ -197,7 +200,9 @@ class _AddFriendPageState extends State<AddFriendPage> {
               width: 76,
               height: 76,
               decoration: const BoxDecoration(
-                color: Color(0xFFFFF0EC), // Soft pink/beige background placeholder
+                color: Color(
+                  0xFFFFF0EC,
+                ), // Soft pink/beige background placeholder
                 shape: BoxShape.circle,
               ),
               child: ClipOval(
@@ -263,13 +268,17 @@ class _AddFriendPageState extends State<AddFriendPage> {
               ),
               behavior: SnackBarBehavior.floating,
               backgroundColor: const Color(0xFF8E59B3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               duration: const Duration(seconds: 2),
             ),
           );
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: user.isRequestSent ? Colors.grey[300] : const Color(0xFF8E59B3),
+          backgroundColor: user.isRequestSent
+              ? Colors.grey[300]
+              : const Color(0xFF8E59B3),
           foregroundColor: user.isRequestSent ? Colors.grey[700] : Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -288,10 +297,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
             const SizedBox(width: 4),
             Text(
               user.isRequestSent ? 'Pending' : 'Add Friend',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -322,10 +328,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
             const SizedBox(height: 4),
             Text(
               'Try typing another username or ID',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
             ),
           ],
         ),
