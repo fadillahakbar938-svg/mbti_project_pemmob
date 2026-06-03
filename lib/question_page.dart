@@ -13,6 +13,9 @@ class _QuestionPageState extends State<QuestionPage> {
   List<Map<String, dynamic>> questions = [];
 
   bool isLoading = true;
+  bool get isAllAnswered {
+    return !answers.contains(0);
+  }
   Future<void> loadQuestions() async {
     final data =
         await SupabaseService.instance.getQuestions();
@@ -161,21 +164,96 @@ void previousQuestion() {
   //function untuk menyimpan jawaban dan lanjut ke soal berikutnya
   Future<void> saveAnswer() async {
 
-  if(selectedScore == 0){
+    if(selectedScore == 0){
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          "Pilih jawaban terlebih dahulu"
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Pilih jawaban terlebih dahulu"
+          ),
         ),
-      ),
-    );
+      );
 
+      return;
+    }
+
+    // simpan jawaban
+    answers[currentQuestion] = selectedScore;
+
+    final user =
+        SupabaseService
+            .instance
+            .currentUser;
+
+    if(user == null){
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Sesi login telah berakhir, silakan login kembali."
+          ),
+        ),
+      );
+
+      return;
+    }
+
+
+    await SupabaseService.instance.saveAnswer(
+      userId: user.id,
+      questionId:
+          questions[currentQuestion]["id"],
+      answerValue: selectedScore,
+    );
+  nextQuestion();
+}
+ Future<void> submitTest() async {
+
+  final confirm = await showDialog<bool>(
+    context: context,
+
+    builder: (_) => AlertDialog(
+
+      title: const Text(
+        "Selesai Tes"
+      ),
+
+      content: const Text(
+        "Yakin ingin mengirim jawaban?"
+      ),
+
+      actions: [
+
+        TextButton(
+          onPressed: () {
+            Navigator.pop(
+              context,
+              false,
+            );
+          },
+          child: const Text(
+            "Batal",
+          ),
+        ),
+
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(
+              context,
+              true,
+            );
+          },
+          child: const Text(
+            "Submit",
+          ),
+        ),
+      ],
+    ),
+  );
+
+  if(confirm != true){
     return;
   }
-
-  // simpan jawaban
-  answers[currentQuestion] = selectedScore;
 
   final user =
       SupabaseService
@@ -183,27 +261,35 @@ void previousQuestion() {
           .currentUser;
 
   if(user == null){
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          "Sesi login telah berakhir, silakan login kembali."
-        ),
-      ),
-    );
-
     return;
   }
 
+  final result =
+      await SupabaseService
+          .instance
+          .calculateMbti(
+            user.id,
+          );
 
-  await SupabaseService.instance.saveAnswer(
-    userId: user.id,
-    questionId:
-        questions[currentQuestion]["id"],
-    answerValue: selectedScore,
+  print("RESULT:");
+  print(result);
+
+  await SupabaseService
+      .instance
+      .saveResult(
+        userId: user.id,
+        result: result,
+      );
+  print("SAVE RESULT SUCCESS");
+
+  print("HASIL MBTI");
+  print(result);
+
+  Navigator.pushNamed(
+    context,
+    '/home',
+    arguments: result,
   );
-
-  nextQuestion();
 }
 
 //function untuk menampilkan daftar soal
@@ -697,7 +783,24 @@ void showQuestionList() {
                   ],
                 ),
               ),
-            )
+            ),
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+
+              child: ElevatedButton(
+
+                onPressed:
+                    isAllAnswered
+                        ? submitTest
+                        : null,
+
+                child: const Text(
+                  "Selesai Tes",
+                ),
+              ),
+            ),
 
             ],
           ),

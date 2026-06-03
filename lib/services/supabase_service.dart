@@ -311,7 +311,18 @@ class SupabaseService {
     });
   }
 
-  
+  Future<int> getTotalTests(
+  String userId,
+) async {
+
+  final response =
+      await _client
+          .from('results')
+          .select('id')
+          .eq('user_id', userId);
+
+  return response.length;
+}
 }
 
 

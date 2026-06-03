@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
 
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -14,11 +15,35 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isGuest = true;
   String? _profilePicture;
   String? _mbtiType;
+  int totalTests = 0;
+  Future<void> loadTotalTests() async {
+
+    final user =
+        SupabaseService
+            .instance
+            .currentUser;
+
+    if(user == null){
+      return;
+    }
+
+    final count =
+        await SupabaseService
+            .instance
+            .getTotalTests(
+              user.id,
+            );
+
+    setState(() {
+      totalTests = count;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _checkUserStatus();
+    loadTotalTests();
   }
 
   void _checkUserStatus() {
@@ -222,7 +247,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   Expanded(
                     child: _buildStatCard(
                       '📋',
-                      _isGuest ? '0' : '5',
+                      totalTests.toString(),
                       'Tests',
                       textDark,
                     ),
