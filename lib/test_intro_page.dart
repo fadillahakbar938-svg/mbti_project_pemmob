@@ -337,6 +337,9 @@ class TestIntroPage extends StatelessWidget {
     ),
   ),
 ),
+      bottomNavigationBar: const CustomBottomNavbar(
+        currentIndex: 1,
+      ),
     );
   }
 
@@ -431,8 +434,9 @@ class TestIntroPage extends StatelessWidget {
             style: const TextStyle(
               color: Colors.grey,
             ),
-          ),
+          )
         ],
+          
       ),
     );
   }
