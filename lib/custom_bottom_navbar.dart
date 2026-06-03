@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'cards_page.dart';
 import 'dashboard_page.dart';
-import 'match_page.dart';
-import 'profile_page.dart';
-import 'question_page.dart';
+import 'test_intro_page.dart';
+import 'soul_match_page.dart';
+
+// import 'cards_page.dart';
+// import 'profile_page.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -18,9 +20,7 @@ class CustomBottomNavbar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade100, width: 1),
-        ),
+        border: Border(top: BorderSide(color: Colors.grey.shade100, width: 1)),
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,
@@ -32,24 +32,30 @@ class CustomBottomNavbar extends StatelessWidget {
           if (index == currentIndex) return;
 
           Widget page;
+
           switch (index) {
             case 0:
               page = const DashboardPage();
               break;
+
             case 1:
-              page = const QuestionPage();
+              page = const TestIntroPage();
               break;
+
             case 2:
-              page = const MatchPage();
+              page = const SoulMatchPage();
               break;
-            case 3:
-              page = const CardsPage();
-              break;
-            case 4:
-              page = const ProfilePage();
-              break;
+
+            // case 3:
+            //   page = const CardsPage();
+            //   break;
+
+            // case 4:
+            //   page = const ProfilePage();
+            //   break;
+
             default:
-              return;
+              page = const DashboardPage();
           }
 
           Navigator.pushReplacement(
@@ -58,10 +64,7 @@ class CustomBottomNavbar extends StatelessWidget {
           );
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics_outlined),
             label: 'Test',

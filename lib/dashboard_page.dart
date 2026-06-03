@@ -5,6 +5,8 @@ import 'match_page.dart';
 import 'question_page.dart';
 import 'widgets/notification_sheet.dart';
 import '../services/supabase_service.dart';
+import 'custom_bottom_navbar.dart';
+import 'soul_match_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -252,7 +254,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const MatchPage(),
+                                  builder: (_) => const SoulMatchPage(),
                                 ),
                               );
                             },
@@ -329,9 +331,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     ),
-              SizedBox(
-                height: MediaQuery.paddingOf(context).bottom + 72,
-              ),
+              SizedBox(height: MediaQuery.paddingOf(context).bottom + 72),
             ],
           ),
         ),
@@ -455,69 +455,67 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('🐑', style: TextStyle(fontSize: 44)),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Container(
-                      width: 80,
-                      height: 80,
-                      decoration: const BoxDecoration(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Center(
-                        child: Text('🐑', style: TextStyle(fontSize: 44)),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'MY TYPE',
-                              style: TextStyle(
-                                color: purpleMain,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _mbtiType == null ? 'UNKNOWN' : _mbtiType!,
-                            style: TextStyle(
-                              color: textDark,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                            ),
-                          ),
-                          Text(
-                            _mbtiType == null
-                                ? 'Uji dirimu sekarang'
-                                : 'The Dreamer',
-                            style: TextStyle(
-                              color: textMuted,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'MY TYPE',
+                        style: TextStyle(
+                          color: purpleMain,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: textMuted.withValues(alpha: 0.6),
-                      size: 20,
+                    const SizedBox(height: 6),
+                    Text(
+                      _mbtiType == null ? 'UNKNOWN' : _mbtiType!,
+                      style: TextStyle(
+                        color: textDark,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                      ),
                     ),
+                    Text(
+                      _mbtiType == null ? 'Uji dirimu sekarang' : 'The Dreamer',
+                      style: TextStyle(
+                        color: textMuted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: textMuted.withValues(alpha: 0.6),
+                size: 20,
+              ),
             ],
           ),
         ],
