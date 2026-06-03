@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
+import 'soul_match_page.dart';
 
 
 class DashboardPage extends StatefulWidget {
@@ -295,7 +296,12 @@ class _DashboardPageState extends State<DashboardPage> {
                       onTap: _isGuest
                           ? _showGuestWarning
                           : () {
-                              // Aksi buka fitur Soul Match
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SoulMatchPage(),
+                                ),
+                              );
                             },
                     ),
                   ),
