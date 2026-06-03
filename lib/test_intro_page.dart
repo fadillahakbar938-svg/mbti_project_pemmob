@@ -113,7 +113,7 @@ class TestIntroPage extends StatelessWidget {
               const SizedBox(height: 8),
 
               const Text(
-                "25 Questions • ~5 Minutes",
+                "80 Questions • ~5 Minutes",
                 style: TextStyle(
                   color: textMuted,
                   fontWeight: FontWeight.w600,
@@ -130,7 +130,7 @@ class TestIntroPage extends StatelessWidget {
 
                   _buildInfoChip(
                     Icons.quiz_outlined,
-                    "25 Questions",
+                    "80 Questions",
                   ),
 
                   const SizedBox(width: 10),
