@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../services/supabase_service.dart';
+import 'widgets/auth_background_blobs.dart';
+import 'widgets/detective_sheep_logo.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -126,31 +129,7 @@ class _LandingPageState extends State<LandingPage>
               ),
             ),
           ),
-          // Lingkaran Dekoratif Estetik Transparan Pastel
-          Positioned(
-            top: -40,
-            right: -40,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF8E59B3).withOpacity(0.06),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -60,
-            left: -60,
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFAECF4).withOpacity(0.6),
-              ),
-            ),
-          ),
+          const AuthBackgroundBlobs(),
           // Konten Utama
           SafeArea(
             child: Padding(
@@ -158,7 +137,7 @@ class _LandingPageState extends State<LandingPage>
               child: Column(
                 children: [
                   const Spacer(flex: 2),
-                  // Animasi Logo ✨ Mengambang
+                  // Animasi maskot domba detektif
                   AnimatedBuilder(
                     animation: Listenable.merge([
                       _entryController,
@@ -389,22 +368,7 @@ class _LandingPageState extends State<LandingPage>
   }
 
   Widget _buildLogo() {
-    return Container(
-      width: 90,
-      height: 90,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8E59B3).withOpacity(0.2),
-            blurRadius: 20,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: const Center(child: Text('✨', style: TextStyle(fontSize: 42))),
-    );
+    return const DetectiveSheepLogo(size: 90);
   }
 
   Widget _pill(String text, Color borderColor) {

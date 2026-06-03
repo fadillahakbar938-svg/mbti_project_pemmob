@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'services/supabase_service.dart';
+import 'widgets/auth_background_blobs.dart';
+import 'widgets/detective_sheep_logo.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -91,6 +93,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         ),
         child: Stack(
           children: [
+            const AuthBackgroundBlobs(),
             // Wave Background Atas dengan warna pastel
             Positioned(
               top: 0,
@@ -114,8 +117,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text('✨', style: TextStyle(fontSize: 40)),
-                            const SizedBox(height: 10),
+                            const DetectiveSheepLogo(size: 88),
+                            const SizedBox(height: 14),
                             const Text(
                               'MBTI TEST',
                               style: TextStyle(

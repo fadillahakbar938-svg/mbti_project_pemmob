@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+
 import 'custom_bottom_navbar.dart';
+import 'match_page.dart';
+import 'question_page.dart';
+import 'widgets/notification_sheet.dart';
+import '../services/supabase_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,11 +18,21 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isGuest = true;
   String? _profilePicture;
   String? _mbtiType;
+  bool _showProfileMenu = false;
+  bool _showNotificationPanel = false;
 
   @override
   void initState() {
     super.initState();
     _checkUserStatus();
+  }
+
+  String _greetingForTimeOfDay() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 11) return 'Selamat pagi';
+    if (hour >= 11 && hour < 15) return 'Selamat siang';
+    if (hour >= 15 && hour < 18) return 'Selamat sore';
+    return 'Selamat malam';
   }
 
   void _checkUserStatus() {
@@ -61,149 +75,107 @@ class _DashboardPageState extends State<DashboardPage> {
     const blueMain = Color(0xFF4A90E2);
     const textDark = Color(0xFF2D2132);
     const textMuted = Color(0xFF7D6F83);
+    const menuPink = Color(0xFFFDE2E4);
+    const avatarPink = Color(0xFFFCE3EC);
 
     return Scaffold(
       backgroundColor: bgCream,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ================= HAMPARAN HEADER (Sapaan & Notifikasi & Log Out) =================
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Header + MY TYPE + menu pink mengambang (seperti desain referensi)
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Good Morning',
-                        style: TextStyle(
-                          color: textMuted,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _displayName,
-                        style: const TextStyle(
-                          color: textDark,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      // Tombol Notifikasi Putih Bersih
-                      _buildIconButton(
-                        Icons.notifications_none_rounded,
-                        textDark,
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Avatar Emoji Kanan Atas -> Berfungsi sebagai TOMBOL LOG OUT
-                      _buildAvatarButton(
-                        profilePicture: _profilePicture,
-                        onTap: () async {
-                          if (!_isGuest) {
-                            // Jika bukan guest, hapus sesi login di Supabase
-                            await SupabaseService.instance.signOut();
-                          }
-                          if (!mounted) return;
-                          // Tendang kembali ke Landing Page ('/') dan bersihkan history halaman
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/',
-                            (route) => false,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // ================= KARTU UTAMA TIPE KEPRIBADIAN (MY TYPE) =================
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: purpleLight,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
-                  children: [
-                    // Gambar/Avatar Domba Menggemaskan di dalam Lingkaran Putih
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text('🐑', style: TextStyle(fontSize: 44)),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _greetingForTimeOfDay(),
+                                  style: const TextStyle(
+                                    color: textMuted,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _displayName,
+                                  style: const TextStyle(
+                                    color: textDark,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'MY TYPE',
-                              style: TextStyle(
-                                color: purpleMain,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
+                          ),
+                          Row(
+                            children: [
+                              _buildNotificationButton(
+                                context,
+                                textDark,
+                                purpleLight: purpleLight,
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _mbtiType == null ? '????' : _mbtiType!,
-                            style: const TextStyle(
-                              color: textDark,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                            ),
-                          ),
-                          Text(
-                            _mbtiType == null
-                                ? 'Uji dirimu sekarang'
-                                : 'The Dreamer',
-                            style: const TextStyle(
-                              color: textMuted,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                              const SizedBox(width: 12),
+                              _buildProfileAvatarButton(
+                                profilePicture: _profilePicture,
+                                avatarPink: avatarPink,
+                                onTap: () {
+                                  setState(() {
+                                    _showProfileMenu = !_showProfileMenu;
+                                    if (_showProfileMenu) {
+                                      _showNotificationPanel = false;
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      _buildMyTypeCard(
+                        purpleLight: purpleLight,
+                        purpleMain: purpleMain,
+                        textDark: textDark,
+                        textMuted: textMuted,
+                      ),
+                    ],
+                  ),
+                  if (_showNotificationPanel)
+                    Positioned(
+                      top: 52,
+                      left: 0,
+                      right: 0,
+                      child: const NotificationPanel(),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: textMuted.withOpacity(0.6),
-                      size: 20,
+                  if (_showProfileMenu)
+                    Positioned(
+                      top: 48,
+                      right: 0,
+                      child: Material(
+                        elevation: 12,
+                        shadowColor: Colors.black.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(22),
+                        child: _buildProfileDropdown(
+                          menuPink: menuPink,
+                          textDark: textDark,
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                ],
               ),
               const SizedBox(height: 20),
 
@@ -252,9 +224,16 @@ class _DashboardPageState extends State<DashboardPage> {
                       title: 'Take Test',
                       subtitle: '25 questions',
                       textColor: textDark,
-                      onTap: () {
-                        // Aksi buka halaman kuesioner tes MBTI Anda di sini
-                      },
+                      onTap: _isGuest
+                          ? _showGuestWarning
+                          : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const QuestionPage(),
+                                ),
+                              );
+                            },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -270,7 +249,12 @@ class _DashboardPageState extends State<DashboardPage> {
                       onTap: _isGuest
                           ? _showGuestWarning
                           : () {
-                              // Aksi buka fitur Soul Match
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const MatchPage(),
+                                ),
+                              );
                             },
                     ),
                   ),
@@ -345,32 +329,74 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     ),
-              const SizedBox(height: 20),
+              SizedBox(
+                height: MediaQuery.paddingOf(context).bottom + 72,
+              ),
             ],
           ),
         ),
       ),
 
-      // ================= ELEGAN PASTEL BOTTOM NAVIGATION BAR =================
-      bottomNavigationBar: const CustomBottomNavbar(
-        currentIndex: 0,
-      ),
-         
+      bottomNavigationBar: const CustomBottomNavbar(currentIndex: 0),
     );
   }
 
-  // Widget Pembantu: Membuat Avatar Button dengan Profile Picture atau Default Emoji
-  Widget _buildAvatarButton({String? profilePicture, VoidCallback? onTap}) {
+  Widget _buildNotificationButton(
+    BuildContext context,
+    Color iconColor, {
+    required Color purpleLight,
+  }) {
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: purpleLight,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _showNotificationPanel = !_showNotificationPanel;
+              if (_showNotificationPanel) _showProfileMenu = false;
+            });
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Center(
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: iconColor,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatarButton({
+    required String? profilePicture,
+    required Color avatarPink,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: avatarPink,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -385,63 +411,203 @@ class _DashboardPageState extends State<DashboardPage> {
                 ? ClipOval(
                     child: Image.network(
                       profilePicture,
+                      width: 32,
+                      height: 32,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildDefaultAvatarPlaceholder();
-                      },
+                      errorBuilder: (_, __, ___) => _buildUwuAvatarFace(),
                     ),
                   )
-                : _buildDefaultAvatarPlaceholder(),
+                : _buildUwuAvatarFace(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDefaultAvatarPlaceholder() {
+  Widget _buildUwuAvatarFace() {
     return Container(
+      width: 32,
+      height: 32,
       decoration: const BoxDecoration(
+        color: Color(0xFF7EC8E3),
         shape: BoxShape.circle,
-        color: Color(0xFFE8E8E8),
       ),
-      child: const Icon(Icons.person, color: Color(0xFF9E9E9E), size: 24),
+      child: CustomPaint(painter: _UwuFacePainter()),
     );
   }
 
-  // Widget Pembantu: Membuat Tombol Putih Bulat di Atas dengan Efek Efek Click InkWell & Ripple
-  Widget _buildIconButton(
-    IconData icon,
-    Color color, {
-    bool isAvatar = false,
-    VoidCallback? onTap,
+  Widget _buildMyTypeCard({
+    required Color purpleLight,
+    required Color purpleMain,
+    required Color textDark,
+    required Color textMuted,
   }) {
     return Container(
-      width: 44,
-      height: 44,
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+        color: purpleLight,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Text('🐑', style: TextStyle(fontSize: 44)),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'MY TYPE',
+                              style: TextStyle(
+                                color: purpleMain,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _mbtiType == null ? 'UNKNOWN' : _mbtiType!,
+                            style: TextStyle(
+                              color: textDark,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              height: 1.1,
+                            ),
+                          ),
+                          Text(
+                            _mbtiType == null
+                                ? 'Uji dirimu sekarang'
+                                : 'The Dreamer',
+                            style: TextStyle(
+                              color: textMuted,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: textMuted.withValues(alpha: 0.6),
+                      size: 20,
+                    ),
+            ],
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Center(
-            child: isAvatar
-                ? const Text('😊', style: TextStyle(fontSize: 20))
-                : Icon(icon, color: color, size: 24),
+    );
+  }
+
+  Widget _buildProfileDropdown({
+    required Color menuPink,
+    required Color textDark,
+  }) {
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: menuPink,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildProfileMenuRow(
+            icon: Icons.account_circle_outlined,
+            label: 'Lihat Profile',
+            textDark: textDark,
+            onTap: () {
+              setState(() => _showProfileMenu = false);
+              Navigator.pushNamed(context, '/profile');
+            },
           ),
-        ),
+          const SizedBox(height: 12),
+          _buildProfileMenuRow(
+            icon: Icons.logout_rounded,
+            label: 'Log Out',
+            textDark: textDark,
+            onTap: () {
+              setState(() => _showProfileMenu = false);
+              _handleLogout();
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildProfileMenuRow({
+    required IconData icon,
+    required String label,
+    required Color textDark,
+    required VoidCallback onTap,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: textDark, size: 26),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            elevation: 2,
+            shadowColor: Colors.black.withValues(alpha: 0.08),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    if (!_isGuest) {
+      await SupabaseService.instance.signOut();
+    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
   // Widget Pembantu: Komponen Kartu Mini Statistik Angka Tengah
@@ -685,4 +851,52 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+}
+
+class _UwuFacePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF2D2132)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
+
+    final w = size.width;
+    final h = size.height;
+
+    // Mata tertutup (garis melengkung)
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: Offset(w * 0.32, h * 0.38),
+        width: w * 0.18,
+        height: h * 0.1,
+      ),
+      0,
+      3.14,
+      false,
+      paint,
+    );
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: Offset(w * 0.68, h * 0.38),
+        width: w * 0.18,
+        height: h * 0.1,
+      ),
+      0,
+      3.14,
+      false,
+      paint,
+    );
+
+    // Mulut bergelombang
+    final mouthPath = Path();
+    mouthPath.moveTo(w * 0.28, h * 0.62);
+    mouthPath.quadraticBezierTo(w * 0.4, h * 0.72, w * 0.5, h * 0.58);
+    mouthPath.quadraticBezierTo(w * 0.6, h * 0.44, w * 0.72, h * 0.62);
+    canvas.drawPath(mouthPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

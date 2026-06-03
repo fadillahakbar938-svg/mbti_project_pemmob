@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'services/supabase_service.dart';
+import 'widgets/auth_background_blobs.dart';
+import 'widgets/detective_sheep_logo.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -103,6 +105,7 @@ class _RegisterPageState extends State<RegisterPage>
         ),
         child: Stack(
           children: [
+            const AuthBackgroundBlobs(),
             // Wave background dekoratif bawah
             Positioned(
               bottom: 0,
@@ -125,6 +128,8 @@ class _RegisterPageState extends State<RegisterPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        const DetectiveSheepLogo(size: 88),
+                        const SizedBox(height: 14),
                         const Text(
                           'MBTI TEST',
                           style: TextStyle(
