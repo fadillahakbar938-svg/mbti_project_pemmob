@@ -24,7 +24,7 @@ class MatchUser {
 }
 
 class SoulMatchPage extends StatefulWidget {
-  const SoulMatchPage({Key? key}) : super(key: key);
+  const SoulMatchPage({super.key});
 
   @override
   State<SoulMatchPage> createState() => _SoulMatchPageState();
@@ -32,12 +32,10 @@ class SoulMatchPage extends StatefulWidget {
 
 class _SoulMatchPageState extends State<SoulMatchPage> {
   // Tab selector active index (0 for Friends, 1 for Matched)
-  int _activeTabSegment = 1; 
+  int _activeTabSegment = 1;
 
- 
   String _searchQuery = "";
 
- 
   final List<MatchUser> _allMatches = const [
     MatchUser(
       username: "AndriAw_",
@@ -67,7 +65,6 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
 
   @override
   Widget build(BuildContext context) {
-    
     final filteredMatches = _allMatches.where((user) {
       final query = _searchQuery.toLowerCase();
       return user.username.toLowerCase().contains(query) ||
@@ -76,7 +73,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F0), 
+      backgroundColor: const Color(0xFFFAF6F0),
       body: SafeArea(
         child: Column(
           children: [
@@ -148,7 +145,8 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: filteredMatches.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 20),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 20),
                         itemBuilder: (context, index) {
                           return _buildMatchUserCard(filteredMatches[index]);
                         },
@@ -164,9 +162,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
       ),
 
       // Bottom Navigation Bar
-      bottomNavigationBar: const CustomBottomNavbar(
-        currentIndex: 2,
-      ),
+      bottomNavigationBar: const CustomBottomNavbar(currentIndex: 2),
     );
   }
 
@@ -191,21 +187,18 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const AddFriendPage(),
-              ),
+              MaterialPageRoute(builder: (_) => const AddFriendPage()),
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 10.0,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                Icon(Icons.add_rounded, color: Colors.white, size: 20),
                 SizedBox(width: 6),
                 Text(
                   'Add friends',
@@ -229,18 +222,12 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFFF3E8FA),
-            Color(0xFFEAD5F5),
-          ],
+          colors: [Color(0xFFF3E8FA), Color(0xFFEAD5F5)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.6),
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -295,7 +282,10 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     child: const Text(
                       'MY TYPE',
                       style: TextStyle(
@@ -352,10 +342,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
       decoration: BoxDecoration(
         color: const Color(0xFFFAF6F0),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: const Color(0xFFE2DCD5),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFFE2DCD5), width: 1.5),
       ),
       child: TextField(
         onChanged: (value) {
@@ -447,7 +434,6 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     );
   }
 
-  
   Widget _buildMatchUserCard(MatchUser user) {
     return Container(
       width: double.infinity,
@@ -477,7 +463,9 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                       width: 76,
                       height: 76,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFFFF0EC), // Warna krem/merah muda lembut
+                        color: Color(
+                          0xFFFFF0EC,
+                        ), // Warna krem/merah muda lembut
                         shape: BoxShape.circle,
                       ),
                       child: ClipOval(
@@ -549,7 +537,9 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                 minHeight: 12,
                 backgroundColor: const Color(0xFFF1EDE6),
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF903636), // Warna merah kecokelatan tebal dari gambar Anda
+                  Color(
+                    0xFF903636,
+                  ), // Warna merah kecokelatan tebal dari gambar Anda
                 ),
               ),
             ),
@@ -573,10 +563,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                 ),
                 child: const Text(
                   'Detail Match',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -594,10 +581,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
       height: 54,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: const Color(0xFF903636),
-          width: 3.5,
-        ),
+        border: Border.all(color: const Color(0xFF903636), width: 3.5),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -635,10 +619,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
             const SizedBox(height: 4),
             Text(
               'Try searching for another MBTI or username',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
             ),
           ],
         ),

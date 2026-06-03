@@ -121,6 +121,45 @@ class SupabaseService {
     await _client.auth.signOut();
   }
 
+  /// Profil dari tabel `users` (username, email, mbti_type, profile_picture, created_at, dll.).
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    final response = await _client
+        .from('users')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    if (response == null) return null;
+    return Map<String, dynamic>.from(response);
+  }
+
+  /// Hasil tes terbaru dari tabel `results` untuk indikator persentase.
+  Future<Map<String, dynamic>?> getLatestResult(String userId) async {
+    try {
+      final response = await _client
+          .from('results')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (response != null) {
+        return Map<String, dynamic>.from(response);
+      }
+    } catch (_) {
+      // Fallback jika kolom created_at belum ada di tabel results.
+    }
+
+    final fallback = await _client
+        .from('results')
+        .select()
+        .eq('user_id', userId)
+        .order('id', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (fallback == null) return null;
+    return Map<String, dynamic>.from(fallback);
+  }
+
   Future<List<Map<String, dynamic>>> getQuestions() async {
     final response =
         await _client
@@ -276,6 +315,32 @@ class SupabaseService {
       'p_percent': pPercent,
     };
     
+  }
+
+  /// Cari pengguna lain berdasarkan username atau ID (UUID).
+  Future<List<Map<String, dynamic>>> searchUsers({
+    required String query,
+    String? excludeUserId,
+    int limit = 20,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
+
+    final escaped = trimmed.replaceAll(',', '');
+    final pattern = '%$escaped%';
+
+    var request = _client
+        .from('users')
+        .select('id, username, email, mbti_type, profile_picture');
+
+    if (excludeUserId != null && excludeUserId.isNotEmpty) {
+      request = request.neq('id', excludeUserId);
+    }
+
+    final response = await request
+        .or('username.ilike.$pattern,email.ilike.$pattern,id.ilike.$pattern')
+        .limit(limit);
+    return List<Map<String, dynamic>>.from(response);
   }
 
   Future<void> saveResult({

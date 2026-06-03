@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'theme/app_theme.dart';
+import 'widgets/detective_sheep_logo.dart';
 import 'landing_page.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 import 'dashboard_page.dart'; // Memastikan dashboard_page sudah terimport
+import 'cards_page.dart';
+import 'profile_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Pastikan asset maskot terdaftar sebelum UI dibuka.
+  await rootBundle.load(DetectiveSheepLogo.assetPath);
+
   await Supabase.initialize(
     url: 'https://ycskqtrbzmfsugyxpldm.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljc2txdHJiem1mc3VneXhwbGRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjgxNzUsImV4cCI6MjA5NTYwNDE3NX0.yuygyDeXGd4A3r0-rZC5w5B2G6aOq_VY2CkwrKrSCtU',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inljc2txdHJiem1mc3VneXhwbGRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjgxNzUsImV4cCI6MjA5NTYwNDE3NX0.yuygyDeXGd4A3r0-rZC5w5B2G6aOq_VY2CkwrKrSCtU',
   );
 
   runApp(const MyApp());
@@ -25,18 +34,12 @@ class MyApp extends StatelessWidget {
       title: 'MBTI Test App',
       debugShowCheckedModeBanner: false,
 
-      // Tema global aplikasi biar serasi dengan warna pastel pink/ungu (INFP)
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8E59B3),
-          primary: const Color(0xFF8E59B3),
-          background: const Color(0xFFFFF3EC),
-        ),
-      ),
+      theme: AppTheme.light(),
 
       // Halaman pertama yang pertama kali muncul saat aplikasi dibuka
-      initialRoute: '/',
+      // NOTE: sementara di-set ke '/profile' agar mudah preview halaman profil.
+      // Ubah kembali ke '/' saat selesai.
+      initialRoute: '/profile',
 
       // Pendaftaran rute navigasi halaman
       routes: {
@@ -46,6 +49,8 @@ class MyApp extends StatelessWidget {
 
         // Rute tujuan diubah ke DashboardPage yang baru saja dibuat
         '/home': (context) => const DashboardPage(),
+        '/cards': (context) => const CardsPage(),
+        '/profile': (context) => const ProfilePage(),
       },
     );
   }
