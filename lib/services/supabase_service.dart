@@ -123,6 +123,7 @@ class SupabaseService {
 
   /// Profil dari tabel `users` (username, email, mbti_type, profile_picture, created_at, dll.).
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    
     final response = await _client
         .from('users')
         .select()
@@ -387,6 +388,22 @@ class SupabaseService {
           .eq('user_id', userId);
 
   return response.length;
+}
+Future<Map<String,dynamic>?> getMbtiProfile(
+  String mbtiType,
+) async {
+
+  final response =
+      await _client
+          .from('mbti_profiles')
+          .select()
+          .eq(
+            'mbti_type',
+            mbtiType,
+          )
+          .maybeSingle();
+
+  return response;
 }
 }
 
