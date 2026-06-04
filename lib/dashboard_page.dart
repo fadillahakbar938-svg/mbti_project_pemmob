@@ -5,6 +5,7 @@ import '../services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
 import 'soul_match_page.dart';
 import 'yakin_page.dart';
+import 'result_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -26,6 +27,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int totalTests = 0;
   int totalMatches = 0;
   int totalCards = 0;
+  int _notificationCount = 0;
 
   @override
   void initState() {
@@ -44,20 +46,37 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadCounts() async {
     final user = SupabaseService.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _notificationCount = 0;
+        });
+      }
+      return;
+    }
 
-    final results = await Future.wait([
-      SupabaseService.instance.getTotalTests(user.id),
-      SupabaseService.instance.getTotalMatches(user.id),
-      SupabaseService.instance.getTotalCards(user.id),
-    ]);
+    try {
+      final results = await Future.wait([
+        SupabaseService.instance.getTotalTests(user.id),
+        SupabaseService.instance.getTotalMatches(user.id),
+        SupabaseService.instance.getTotalCards(user.id),
+        SupabaseService.instance.getIncomingFriendRequests(user.id),
+        SupabaseService.instance.getIncomingMatchRequests(user.id),
+      ]);
 
-    if (!mounted) return;
-    setState(() {
-      totalTests = results[0];
-      totalMatches = results[1];
-      totalCards = results[2];
-    });
+      if (!mounted) return;
+      setState(() {
+        totalTests = results[0] as int;
+        totalMatches = results[1] as int;
+        totalCards = results[2] as int;
+        
+        final incomingFriends = results[3] as List<dynamic>;
+        final incomingMatches = results[4] as List<dynamic>;
+        _notificationCount = incomingFriends.length + incomingMatches.length;
+      });
+    } catch (e) {
+      debugPrint('Error loading counts: $e');
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -196,6 +215,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ],
                         ),
+                        if (_showNotificationPanel) ...[
+                          const SizedBox(height: 16),
+                          NotificationPanel(
+                            key: _notifKey,
+                            onChanged: _loadCounts,
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         _buildMyTypeCard(
                           purpleLight: purpleLight,
@@ -205,14 +231,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ],
                     ),
-
-                    if (_showNotificationPanel)
-                      Positioned(
-                        top: 52,
-                        left: 0,
-                        right: 0,
-                        child: NotificationPanel(key: _notifKey),
-                      ),
 
                     if (_showProfileMenu)
                       Positioned(
@@ -397,10 +415,40 @@ class _DashboardPageState extends State<DashboardPage> {
             });
           },
           child: Center(
-            child: Icon(
-              Icons.notifications_none_rounded,
-              color: iconColor,
-              size: 24,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  Icons.notifications_none_rounded,
+                  color: iconColor,
+                  size: 24,
+                ),
+                if (_notificationCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '$_notificationCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -474,8 +522,15 @@ class _DashboardPageState extends State<DashboardPage> {
     required Color textDark,
     required Color textMuted,
   }) {
-    return Container(
-      width: double.infinity,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ResultPage()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: purpleLight,
@@ -545,7 +600,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildProfileDropdown({

@@ -528,9 +528,10 @@ class _AddFriendPageState extends State<AddFriendPage> {
             ),
             const SizedBox(width: 4),
             onCooldown
-                ? _CooldownText(
-                    userId: userId,
-                    requestSentAt: _requestSentAt,
+                ? Text(
+                    'Tunggu ${_cooldownRemaining(userId)}s',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold),
                   )
                 : Text(
                     isPending ? 'Menunggu' : 'Tambah Teman',
@@ -595,56 +596,4 @@ class _AddFriendPageState extends State<AddFriendPage> {
     );
   }
 }
-
-// ── Countdown widget ──────────────────────────────────────
-class _CooldownText extends StatefulWidget {
-  final String userId;
-  final Map<String, DateTime> requestSentAt;
-
-  const _CooldownText({
-    required this.userId,
-    required this.requestSentAt,
-  });
-
-  @override
-  State<_CooldownText> createState() => _CooldownTextState();
-}
-
-class _CooldownTextState extends State<_CooldownText> {
-  late Timer _timer;
-  int _remaining = 120;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(_updateRemaining);
-    });
-  }
-
-  void _updateRemaining() {
-    final sentAt = widget.requestSentAt[widget.userId];
-    if (sentAt == null) {
-      _remaining = 0;
-      return;
-    }
-    final elapsed = DateTime.now().difference(sentAt).inSeconds;
-    _remaining = (120 - elapsed).clamp(0, 120);
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'Tunggu ${_remaining}d',
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-    );
-  }
-}
+

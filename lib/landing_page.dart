@@ -132,11 +132,11 @@ class _LandingPageState extends State<LandingPage>
           const AuthBackgroundBlobs(),
           // Konten Utama
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 children: [
-                  const Spacer(flex: 2),
+                  const SizedBox(height: 36),
                   // Animasi maskot domba detektif
                   AnimatedBuilder(
                     animation: Listenable.merge([
@@ -209,7 +209,7 @@ class _LandingPageState extends State<LandingPage>
                       ),
                     ),
                   ),
-                  const Spacer(flex: 2),
+                  const SizedBox(height: 36),
                   // Kelompok Tombol Navigasi Utama
                   AnimatedBuilder(
                     animation: _entryController,

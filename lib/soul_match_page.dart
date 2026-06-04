@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'custom_bottom_navbar.dart';
 import 'add_friend_page.dart';
 import 'services/supabase_service.dart';
+import 'match_detail_page.dart';
+import 'friend_profile_page.dart';
+import 'result_page.dart';
+import 'dart:async';
 
 class SoulMatchPage extends StatefulWidget {
   const SoulMatchPage({super.key});
@@ -25,6 +29,8 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
   bool _loadingList = true;
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _matches = [];
+  List<Map<String, dynamic>> _matchRequests = [];
+  final Map<String, DateTime> _matchRequestSentAt = {};
 
   @override
   void initState() {
@@ -81,15 +87,17 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
 
   Future<void> _loadFriendsAndMatches(String userId) async {
     try {
-      final friends =
-          await SupabaseService.instance.getFriends(userId);
-      final matches =
-          await SupabaseService.instance.getMatches(userId);
+      final results = await Future.wait([
+        SupabaseService.instance.getFriends(userId),
+        SupabaseService.instance.getMatches(userId),
+        SupabaseService.instance.getMatchRequests(userId),
+      ]);
 
       if (!mounted) return;
       setState(() {
-        _friends = friends;
-        _matches = matches;
+        _friends = results[0];
+        _matches = results[1];
+        _matchRequests = results[2];
         _loadingList = false;
       });
     } catch (_) {
@@ -265,8 +273,15 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
       );
     }
 
-    return Container(
-      width: double.infinity,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ResultPage()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFF3E8FA), Color(0xFFEAD5F5)],
@@ -370,7 +385,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildSearchBar() {
@@ -541,6 +556,143 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     }
   }
 
+  bool _isMatchOnCooldown(String friendId) {
+    final sentAt = _matchRequestSentAt[friendId];
+    if (sentAt != null) {
+      final elapsed = DateTime.now().difference(sentAt).inSeconds;
+      if (elapsed >= 0 && elapsed < 60) return true;
+    }
+
+    final matchReq = _getMatchRequestForFriend(friendId);
+    if (matchReq != null && matchReq['status'] == 'pending') {
+      final createdAtStr = matchReq['created_at'];
+      if (createdAtStr != null) {
+        final createdAt = DateTime.tryParse(createdAtStr.toString())?.toLocal();
+        if (createdAt != null) {
+          final elapsed = DateTime.now().difference(createdAt).inSeconds;
+          if (elapsed >= 0 && elapsed < 60) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  int _matchCooldownRemaining(String friendId) {
+    int maxRemaining = 0;
+
+    final sentAt = _matchRequestSentAt[friendId];
+    if (sentAt != null) {
+      final elapsed = DateTime.now().difference(sentAt).inSeconds;
+      final remaining = (60 - elapsed).clamp(0, 60);
+      if (remaining > maxRemaining) maxRemaining = remaining;
+    }
+
+    final matchReq = _getMatchRequestForFriend(friendId);
+    if (matchReq != null && matchReq['status'] == 'pending') {
+      final createdAtStr = matchReq['created_at'];
+      if (createdAtStr != null) {
+        final createdAt = DateTime.tryParse(createdAtStr.toString())?.toLocal();
+        if (createdAt != null) {
+          final elapsed = DateTime.now().difference(createdAt).inSeconds;
+          final remaining = (60 - elapsed).clamp(0, 60);
+          if (remaining > maxRemaining) maxRemaining = remaining;
+        }
+      }
+    }
+
+    return maxRemaining;
+  }
+
+  Map<String, dynamic>? _getMatchRequestForFriend(String friendId) {
+    final userId = SupabaseService.instance.currentUser?.id;
+    if (userId == null) return null;
+
+    for (final req in _matchRequests) {
+      final senderId = req['sender_id'] as String;
+      final receiverId = req['receiver_id'] as String;
+
+      if ((senderId == userId && receiverId == friendId) ||
+          (senderId == friendId && receiverId == userId)) {
+        return req;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _handleMatchTap(String friendId, String status, int? requestId) async {
+    final userId = SupabaseService.instance.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      if (status == 'none') {
+        if (_isMatchOnCooldown(friendId)) {
+          final remaining = _matchCooldownRemaining(friendId);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Harap tunggu $remaining detik sebelum mengirim ulang.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        await SupabaseService.instance.sendMatchRequest(
+          senderId: userId,
+          receiverId: friendId,
+        );
+        
+        setState(() {
+          _matchRequestSentAt[friendId] = DateTime.now();
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Match request sent! ❤️'),
+              backgroundColor: _primaryColor,
+            ),
+          );
+        }
+      } else if (status == 'cancel') {
+        await SupabaseService.instance.cancelMatchRequest(
+          senderId: userId,
+          receiverId: friendId,
+        );
+        setState(() {
+          _matchRequestSentAt.remove(friendId);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Match request cancelled.'),
+              backgroundColor: Colors.grey,
+            ),
+          );
+        }
+      } else if (status == 'incoming' && requestId != null) {
+        await SupabaseService.instance.acceptMatchRequest(requestId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Match request accepted! 🎉'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+      _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildFriendCard(Map<String, dynamic> user) {
     final username = user['username'] as String? ?? 'Unknown';
     final mbtiRaw = user['mbti_type'] as String?;
@@ -552,8 +704,69 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
         profilePic.isNotEmpty &&
         profilePic != 'default.png';
 
-    return Container(
-      decoration: BoxDecoration(
+    final userId = SupabaseService.instance.currentUser?.id ?? '';
+    final friendId = user['id'] as String;
+    final matchReq = _getMatchRequestForFriend(friendId);
+
+    String buttonText = 'Match';
+    Color buttonColor = _primaryColor;
+    VoidCallback? onPressed;
+
+    if (matchReq == null) {
+      buttonText = 'Match';
+      buttonColor = _primaryColor;
+      onPressed = () => _handleMatchTap(friendId, 'none', null);
+    } else {
+      final status = matchReq['status'] as String;
+      final senderId = matchReq['sender_id'] as String;
+      final reqId = (matchReq['id'] as num).toInt();
+
+      if (status == 'accepted') {
+        buttonText = 'Matched';
+        buttonColor = Colors.green;
+        onPressed = null;
+      } else if (status == 'rejected') {
+        buttonText = 'Match';
+        buttonColor = _primaryColor;
+        onPressed = () => _handleMatchTap(friendId, 'none', null);
+      } else if (status == 'pending') {
+        if (senderId == userId) {
+          final onCooldown = _isMatchOnCooldown(friendId);
+          if (onCooldown) {
+            final remaining = _matchCooldownRemaining(friendId);
+            buttonText = 'Tunggu ${remaining}s';
+            buttonColor = Colors.grey;
+            onPressed = null;
+          } else {
+            buttonText = 'Cancel';
+            buttonColor = Colors.redAccent;
+            onPressed = () => _handleMatchTap(friendId, 'cancel', reqId);
+          }
+        } else {
+          buttonText = 'Accept';
+          buttonColor = Colors.blue;
+          onPressed = () => _handleMatchTap(friendId, 'incoming', reqId);
+        }
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (!hasValidMbti) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FriendProfilePage(
+              friendId: friendId,
+              friendUsername: username,
+              friendMbti: mbtiRaw!.toUpperCase(),
+              friendProfilePic: hasImage ? profilePic : null,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -621,22 +834,22 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
               ),
             ),
 
-            // Tombol match (future)
+            // Tombol match
             TextButton(
-              onPressed: () {
-                // TODO: navigasi ke halaman match dengan teman ini
-              },
-              style: TextButton.styleFrom(foregroundColor: _primaryColor),
-              child: const Text(
-                'Match',
-                style:
-                    TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              onPressed: onPressed,
+              style: TextButton.styleFrom(
+                foregroundColor: buttonColor,
+                disabledForegroundColor: buttonColor.withValues(alpha: 0.6),
+              ),
+              child: Text(
+                buttonText,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildMatchCard(Map<String, dynamic> row) {
@@ -656,8 +869,23 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
         (row['compatibility_percentage'] as num?)?.toInt() ?? 0;
     final compatValue = compatibility / 100.0;
 
-    return Container(
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () {
+        if (!hasValidMbti) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FriendProfilePage(
+              friendId: friend['id'] as String,
+              friendUsername: username,
+              friendMbti: mbtiRaw!.toUpperCase(),
+              friendProfilePic: hasImage ? profilePic : null,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
@@ -762,7 +990,15 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: navigasi ke detail match
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MatchDetailPage(
+                        historyId: row['id'] as int,
+                        supabaseService: SupabaseService.instance,
+                      ),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryColor,
@@ -781,7 +1017,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildRadialScore(double value) {
@@ -835,3 +1071,4 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     );
   }
 }
+

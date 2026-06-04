@@ -155,11 +155,14 @@ void previousQuestion() {
       });
 
     }else{
-
-      // pindah ke hasil MBTI
-      print("Tes selesai");
+      if (isAllAnswered) {
+        submitTest();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Harap isi semua pertanyaan!")),
+        );
+      }
     }
-
   }
 
   //function untuk menyimpan jawaban dan lanjut ke soal berikutnya

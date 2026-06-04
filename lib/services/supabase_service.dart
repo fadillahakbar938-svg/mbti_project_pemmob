@@ -424,27 +424,28 @@ Future<Map<String,dynamic>?> getMbtiProfile(
 }
 
 /// Kirim friend request
-Future<void> sendFriendRequest({
-  required String senderId,
-  required String receiverId,
-}) async {
-  // Hanya cek satu arah: sender ini ke receiver ini
-  // Tidak cek dua arah agar A bisa request ke B meski B sudah request ke A
-  final existing = await _client
-      .from('friend_requests')
-      .select('id')
-      .eq('sender_id', senderId)
-      .eq('receiver_id', receiverId)
-      .maybeSingle();
+  Future<void> sendFriendRequest({
+    required String senderId,
+    required String receiverId,
+  }) async {
+    // Hanya cek satu arah: sender ini ke receiver ini
+    // Tidak cek dua arah agar A bisa request ke B meski B sudah request ke A
+    final existingList = await _client
+        .from('friend_requests')
+        .select('id')
+        .eq('sender_id', senderId)
+        .eq('receiver_id', receiverId)
+        .order('id', ascending: false)
+        .limit(1);
 
-  if (existing != null) return; // Sudah pernah kirim, skip
+    if (existingList.isNotEmpty) return; // Sudah pernah kirim, skip
 
-  await _client.from('friend_requests').insert({
-    'sender_id': senderId,
-    'receiver_id': receiverId,
-    'status': 'pending',
-  });
-}
+    await _client.from('friend_requests').insert({
+      'sender_id': senderId,
+      'receiver_id': receiverId,
+      'status': 'pending',
+    });
+  }
 
 /// Batalkan / hapus friend request
 Future<void> cancelFriendRequest({
@@ -461,36 +462,38 @@ Future<void> cancelFriendRequest({
 
 /// Cek status friend request antara dua user
 /// Return: 'none' | 'pending' | 'accepted' | 'rejected'
-Future<String> getFriendRequestStatus({
-  required String currentUserId,
-  required String otherUserId,
-}) async {
-  // Cek request yang kita kirim
-  final sent = await _client
-      .from('friend_requests')
-      .select('status')
-      .eq('sender_id', currentUserId)
-      .eq('receiver_id', otherUserId)
-      .maybeSingle();
+  Future<String> getFriendRequestStatus({
+    required String currentUserId,
+    required String otherUserId,
+  }) async {
+    // Cek request yang kita kirim
+    final sentList = await _client
+        .from('friend_requests')
+        .select('status')
+        .eq('sender_id', currentUserId)
+        .eq('receiver_id', otherUserId)
+        .order('id', ascending: false)
+        .limit(1);
 
-  if (sent != null) return sent['status'] as String? ?? 'none';
+    if (sentList.isNotEmpty) return sentList.first['status'] as String? ?? 'none';
 
-  // Cek request yang masuk dari orang lain
-  final received = await _client
-      .from('friend_requests')
-      .select('status')
-      .eq('sender_id', otherUserId)
-      .eq('receiver_id', currentUserId)
-      .maybeSingle();
+    // Cek request yang masuk dari orang lain
+    final receivedList = await _client
+        .from('friend_requests')
+        .select('status')
+        .eq('sender_id', otherUserId)
+        .eq('receiver_id', currentUserId)
+        .order('id', ascending: false)
+        .limit(1);
 
-  if (received != null) {
-    final status = received['status'] as String? ?? 'none';
-    if (status == 'accepted') return 'accepted';
-    if (status == 'pending') return 'incoming'; // ← tambah status baru ini
+    if (receivedList.isNotEmpty) {
+      final status = receivedList.first['status'] as String? ?? 'none';
+      if (status == 'accepted') return 'accepted';
+      if (status == 'pending') return 'incoming';
+    }
+
+    return 'none';
   }
-
-  return 'none';
-}
 
 /// Ambil daftar teman (status = 'accepted')
 Future<List<Map<String, dynamic>>> getFriends(String userId) async {
@@ -507,18 +510,74 @@ Future<List<Map<String, dynamic>>> getFriends(String userId) async {
   return List<Map<String, dynamic>>.from(response);
 }
 
-/// Ambil daftar match (dari match_results)
+/// Ambil daftar match (dari match_history + join ke mbti_compatibility)
 Future<List<Map<String, dynamic>>> getMatches(String userId) async {
-  final response = await _client
-      .from('match_results')
+  final historyResponse = await _client
+      .from('match_history')
       .select('''
-        id, compatibility_percentage, summary, created_at,
+        id, created_at, user_mbti, friend_mbti,
         friend:users!friend_id(id, username, mbti_type, profile_picture)
       ''')
       .eq('user_id', userId)
-      .order('compatibility_percentage', ascending: false);
+      .order('created_at', ascending: false);
+      
+  final List<Map<String, dynamic>> matches = List<Map<String, dynamic>>.from(historyResponse);
+  
+  for (var i = 0; i < matches.length; i++) {
+    final m1 = matches[i]['user_mbti'] as String;
+    final m2 = matches[i]['friend_mbti'] as String;
+    
+    final type1 = m1.compareTo(m2) <= 0 ? m1 : m2;
+    final type2 = m1.compareTo(m2) <= 0 ? m2 : m1;
+    
+    final compat = await _client
+        .from('mbti_compatibility')
+        .select('compatibility_percentage, summary')
+        .eq('mbti_type_1', type1)
+        .eq('mbti_type_2', type2)
+        .maybeSingle();
+        
+    matches[i]['compatibility_percentage'] = compat?['compatibility_percentage'] ?? 50;
+    matches[i]['summary'] = compat?['summary'] ?? "Belum ada data kecocokan.";
+  }
+  
+  matches.sort((a, b) => (b['compatibility_percentage'] as int).compareTo(a['compatibility_percentage'] as int));
 
-  return List<Map<String, dynamic>>.from(response);
+  return matches;
+}
+
+/// Ambil detail match lengkap berdasarkan match_history_id
+Future<Map<String, dynamic>?> getMatchDetail(int historyId) async {
+  final history = await _client
+      .from('match_history')
+      .select('''
+        id, created_at, user_mbti, friend_mbti, user_id, friend_id,
+        user:users!user_id(id, username, profile_picture),
+        friend:users!friend_id(id, username, profile_picture)
+      ''')
+      .eq('id', historyId)
+      .maybeSingle();
+      
+  if (history == null) return null;
+  
+  final m1 = history['user_mbti'] as String;
+  final m2 = history['friend_mbti'] as String;
+  
+  final type1 = m1.compareTo(m2) <= 0 ? m1 : m2;
+  final type2 = m1.compareTo(m2) <= 0 ? m2 : m1;
+  
+  final compat = await _client
+      .from('mbti_compatibility')
+      .select('*')
+      .eq('mbti_type_1', type1)
+      .eq('mbti_type_2', type2)
+      .maybeSingle();
+      
+  if (compat != null) {
+    history['compatibility'] = compat;
+  }
+  
+  return history;
 }
 
 /// Ambil semua pending friend requests yang masuk ke user ini
@@ -546,6 +605,17 @@ Future<void> acceptFriendRequest(int requestId) async {
       .eq('id', requestId);
 }
 
+  /// Hapus pertemanan (unfriend)
+  Future<void> removeFriend({
+    required String currentUserId,
+    required String friendId,
+  }) async {
+    await _client
+        .from('friend_requests')
+        .delete()
+        .or('and(sender_id.eq.$currentUserId,receiver_id.eq.$friendId),and(sender_id.eq.$friendId,receiver_id.eq.$currentUserId)');
+  }
+
 /// Tolak friend request
 Future<void> rejectFriendRequest(int requestId) async {
   await _client
@@ -556,25 +626,26 @@ Future<void> rejectFriendRequest(int requestId) async {
 
 /// Cek apakah ada pending request yang dikirim user ini ke target
 /// Return: created_at dari request jika ada, null jika tidak ada
-Future<DateTime?> getOutgoingPendingRequestTime({
-  required String senderId,
-  required String receiverId,
-}) async {
-  final response = await _client
-      .from('friend_requests')
-      .select('created_at')
-      .eq('sender_id', senderId)
-      .eq('receiver_id', receiverId)
-      .eq('status', 'pending')
-      .maybeSingle();
+  Future<DateTime?> getOutgoingPendingRequestTime({
+    required String senderId,
+    required String receiverId,
+  }) async {
+    final response = await _client
+        .from('friend_requests')
+        .select('created_at')
+        .eq('sender_id', senderId)
+        .eq('receiver_id', receiverId)
+        .eq('status', 'pending')
+        .order('id', ascending: false)
+        .limit(1);
 
-  if (response == null) return null;
-  return DateTime.tryParse(response['created_at'].toString());
-}
+    if (response.isEmpty) return null;
+    return DateTime.tryParse(response.first['created_at'].toString());
+  }
 /// Jumlah total match yang sudah dilakukan user
   Future<int> getTotalMatches(String userId) async {
     final response = await _client
-        .from('match_results')
+        .from('match_history')
         .select('id')
         .eq('user_id', userId);
     return response.length;
@@ -610,12 +681,11 @@ Future<DateTime?> getOutgoingPendingRequestTime({
     // 2. Dari match dengan teman (MBTI teman = kartu baru)
     try {
       final matches = await _client
-          .from('match_results')
-          .select('friend:users!friend_id(mbti_type)')
+          .from('match_history')
+          .select('friend_mbti')
           .eq('user_id', userId);
       for (final m in matches) {
-        final friend = m['friend'] as Map<String, dynamic>?;
-        final mbti = friend?['mbti_type'] as String?;
+        final mbti = m['friend_mbti'] as String?;
         if (mbti != null &&
             mbti.isNotEmpty &&
             mbti.toUpperCase() != 'NULL') {
@@ -626,6 +696,180 @@ Future<DateTime?> getOutgoingPendingRequestTime({
 
     return unlocked;
   }
-}
 
+  // ── Match Requests & Compatibility ──
+
+  Future<void> sendMatchRequest({
+    required String senderId,
+    required String receiverId,
+  }) async {
+    final list = await _client
+        .from('match_requests')
+        .select('id')
+        .or('and(sender_id.eq.$senderId,receiver_id.eq.$receiverId),and(sender_id.eq.$receiverId,receiver_id.eq.$senderId)')
+        .order('id', ascending: false)
+        .limit(1);
+
+    if (list.isNotEmpty) {
+      final existingId = list.first['id'];
+      await _client.from('match_requests').update({
+        'sender_id': senderId,
+        'receiver_id': receiverId,
+        'status': 'pending',
+        'created_at': DateTime.now().toIso8601String(),
+      }).eq('id', existingId);
+    } else {
+      await _client.from('match_requests').insert({
+        'sender_id': senderId,
+        'receiver_id': receiverId,
+        'status': 'pending',
+      });
+    }
+  }
+
+  /// Batalkan / hapus match request
+  Future<void> cancelMatchRequest({
+    required String senderId,
+    required String receiverId,
+  }) async {
+    await _client
+        .from('match_requests')
+        .delete()
+        .eq('sender_id', senderId)
+        .eq('receiver_id', receiverId)
+        .eq('status', 'pending');
+  }
+
+  /// Cek status match request antara dua user
+  /// Return: 'none' | 'pending' | 'incoming' | 'accepted' | 'rejected'
+  Future<String> getMatchRequestStatus({
+    required String currentUserId,
+    required String otherUserId,
+  }) async {
+    // Cek request yang kita kirim
+    final sentList = await _client
+        .from('match_requests')
+        .select('status')
+        .eq('sender_id', currentUserId)
+        .eq('receiver_id', otherUserId)
+        .order('id', ascending: false)
+        .limit(1);
+
+    if (sentList.isNotEmpty) return sentList.first['status'] as String? ?? 'none';
+
+    // Cek request yang masuk dari orang lain
+    final receivedList = await _client
+        .from('match_requests')
+        .select('status')
+        .eq('sender_id', otherUserId)
+        .eq('receiver_id', currentUserId)
+        .order('id', ascending: false)
+        .limit(1);
+
+    if (receivedList.isNotEmpty) {
+      final status = receivedList.first['status'] as String? ?? 'none';
+      if (status == 'accepted') return 'accepted';
+      if (status == 'pending') return 'incoming';
+    }
+
+    return 'none';
+  }
+
+  /// Ambil semua pending match requests yang masuk ke user ini
+  Future<List<Map<String, dynamic>>> getIncomingMatchRequests(
+    String userId,
+  ) async {
+    final response = await _client
+        .from('match_requests')
+        .select('''
+          id, status, created_at,
+          sender:users!sender_id(id, username, mbti_type, profile_picture)
+        ''')
+        .eq('receiver_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Terima match request dan buat hasil kecocokan di match_results
+  Future<void> acceptMatchRequest(int requestId) async {
+    // 1. Ambil data request untuk tahu siapa sender dan receiver
+    final req = await _client
+        .from('match_requests')
+        .select('sender_id, receiver_id')
+        .eq('id', requestId)
+        .single();
+
+    final senderId = req['sender_id'] as String;
+    final receiverId = req['receiver_id'] as String;
+
+    // 2. Update status request ke accepted
+    await _client
+        .from('match_requests')
+        .update({'status': 'accepted'})
+        .eq('id', requestId);
+
+    // 3. Ambil data MBTI masing-masing user
+    final senderProfile = await getUserProfile(senderId);
+    final receiverProfile = await getUserProfile(receiverId);
+
+    final senderMbti = senderProfile?['mbti_type'] as String? ?? 'INFP';
+    final receiverMbti = receiverProfile?['mbti_type'] as String? ?? 'INFJ';
+
+    // 4. Simpan riwayat match (dua arah agar kedua user bisa melihat di tab Matched)
+    // Arah 1: Dari sisi Receiver melihat Sender
+    await _client.from('match_history').insert({
+      'user_id': receiverId,
+      'friend_id': senderId,
+      'user_mbti': receiverMbti,
+      'friend_mbti': senderMbti,
+    });
+
+    // Arah 2: Dari sisi Sender melihat Receiver
+    await _client.from('match_history').insert({
+      'user_id': senderId,
+      'friend_id': receiverId,
+      'user_mbti': senderMbti,
+      'friend_mbti': receiverMbti,
+    });
+  }
+
+  /// Tolak match request
+  Future<void> rejectMatchRequest(int requestId) async {
+    await _client
+        .from('match_requests')
+        .update({'status': 'rejected'})
+        .eq('id', requestId);
+  }
+
+  /// Hapus riwayat match antara dua user
+  Future<void> deleteMatchHistory({
+    required String currentUserId,
+    required String friendId,
+  }) async {
+    // Hapus dari match_history (kedua arah)
+    await _client
+        .from('match_history')
+        .delete()
+        .or('and(user_id.eq.$currentUserId,friend_id.eq.$friendId),and(user_id.eq.$friendId,friend_id.eq.$currentUserId)');
+        
+    // Hapus juga riwayat dari match_requests agar bersih dan bisa match ulang dari awal
+    await _client
+        .from('match_requests')
+        .delete()
+        .or('and(sender_id.eq.$currentUserId,receiver_id.eq.$friendId),and(sender_id.eq.$friendId,receiver_id.eq.$currentUserId)');
+  }
+
+  /// Ambil semua match request yang melibatkan user saat ini
+  Future<List<Map<String, dynamic>>> getMatchRequests(String userId) async {
+    final response = await _client
+        .from('match_requests')
+        .select()
+        .or('sender_id.eq.$userId,receiver_id.eq.$userId')
+        .order('id', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+}
 

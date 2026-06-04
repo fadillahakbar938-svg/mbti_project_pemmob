@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
       // Halaman pertama yang pertama kali muncul saat aplikasi dibuka
       // NOTE: sementara di-set ke '/profile' agar mudah preview halaman profil.
       // Ubah kembali ke '/' saat selesai.
-      initialRoute: '/profile',
+      initialRoute: '/',
 
       // Pendaftaran rute navigasi halaman
       routes: {

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 
 class NotificationPanel extends StatefulWidget {
-  const NotificationPanel({super.key});
+  final VoidCallback? onChanged;
+  const NotificationPanel({super.key, this.onChanged});
 
   @override
   State<NotificationPanel> createState() => _NotificationPanelState();
@@ -32,32 +33,55 @@ class _NotificationPanelState extends State<NotificationPanel> {
     }
 
     try {
-      final requests =
-          await SupabaseService.instance.getIncomingFriendRequests(userId);
+      final results = await Future.wait([
+        SupabaseService.instance.getIncomingFriendRequests(userId),
+        SupabaseService.instance.getIncomingMatchRequests(userId),
+      ]);
+
+      final friendRequests = results[0].map<Map<String, dynamic>>((r) => {...r, 'type': 'friend'}).toList();
+      final matchRequests = results[1].map<Map<String, dynamic>>((r) => {...r, 'type': 'match'}).toList();
+
+      final combined = [...friendRequests, ...matchRequests];
+      
+      // Sort by created_at desc
+      combined.sort((a, b) {
+        final aTime = DateTime.tryParse(a['created_at'].toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = DateTime.tryParse(b['created_at'].toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+
       if (!mounted) return;
       setState(() {
-        _requests = requests;
+        _requests = combined;
         _loading = false;
       });
+      widget.onChanged?.call();
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
     }
   }
 
-  Future<void> _accept(int requestId) async {
+  Future<void> _accept(int requestId, String type) async {
     if (_processingIds.contains(requestId)) return;
     setState(() => _processingIds.add(requestId));
     try {
-      await SupabaseService.instance.acceptFriendRequest(requestId);
+      if (type == 'friend') {
+        await SupabaseService.instance.acceptFriendRequest(requestId);
+      } else {
+        await SupabaseService.instance.acceptMatchRequest(requestId);
+      }
       if (!mounted) return;
       setState(() {
-        _requests.removeWhere((r) => (r['id'] as int) == requestId);
+        _requests.removeWhere((r) => (r['id'] as int) == requestId && r['type'] == type);
         _processingIds.remove(requestId);
       });
+      widget.onChanged?.call();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Permintaan pertemanan diterima! 🎉'),
+          content: Text(type == 'friend'
+              ? 'Permintaan pertemanan diterima! 🎉'
+              : 'Permintaan match diterima! 🎉'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: _primaryColor,
           shape:
@@ -71,16 +95,21 @@ class _NotificationPanelState extends State<NotificationPanel> {
     }
   }
 
-  Future<void> _reject(int requestId) async {
+  Future<void> _reject(int requestId, String type) async {
     if (_processingIds.contains(requestId)) return;
     setState(() => _processingIds.add(requestId));
     try {
-      await SupabaseService.instance.rejectFriendRequest(requestId);
+      if (type == 'friend') {
+        await SupabaseService.instance.rejectFriendRequest(requestId);
+      } else {
+        await SupabaseService.instance.rejectMatchRequest(requestId);
+      }
       if (!mounted) return;
       setState(() {
-        _requests.removeWhere((r) => (r['id'] as int) == requestId);
+        _requests.removeWhere((r) => (r['id'] as int) == requestId && r['type'] == type);
         _processingIds.remove(requestId);
       });
+      widget.onChanged?.call();
     } catch (_) {
       if (!mounted) return;
       setState(() => _processingIds.remove(requestId));
@@ -193,6 +222,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 320),
               child: ListView.separated(
+                physics: const BouncingScrollPhysics(),
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 itemCount: _requests.length,
@@ -207,6 +237,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
 
   Widget _buildRequestItem(Map<String, dynamic> request) {
     final requestId = request['id'] as int;
+    final type = request['type'] as String? ?? 'friend';
     final sender = request['sender'] as Map<String, dynamic>?;
     final username = sender?['username'] as String? ?? 'Pengguna';
     final profilePic = sender?['profile_picture'] as String?;
@@ -214,6 +245,10 @@ class _NotificationPanelState extends State<NotificationPanel> {
         profilePic.isNotEmpty &&
         profilePic != 'default.png';
     final isProcessing = _processingIds.contains(requestId);
+
+    final text = type == 'friend'
+        ? '$username ingin berteman dengan anda'
+        : '$username mengajak anda mencocokkan MBTI';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -240,7 +275,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
                 ? Image.network(
                     profilePic,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                    errorBuilder: (_, _, _) => const Icon(Icons.person,
                         size: 22, color: Colors.grey),
                   )
                 : const Icon(Icons.person, size: 22, color: Colors.grey),
@@ -248,7 +283,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '$username ingin berteman dengan anda',
+              text,
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -272,12 +307,12 @@ class _NotificationPanelState extends State<NotificationPanel> {
                 _buildChip(
                     label: 'Setuju',
                     color: _primaryColor,
-                    onTap: () => _accept(requestId)),
+                    onTap: () => _accept(requestId, type)),
                 const SizedBox(width: 6),
                 _buildChip(
                     label: 'Tolak',
                     color: Colors.grey[400]!,
-                    onTap: () => _reject(requestId)),
+                    onTap: () => _reject(requestId, type)),
               ],
             ),
         ],
