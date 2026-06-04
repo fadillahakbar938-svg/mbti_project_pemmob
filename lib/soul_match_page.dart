@@ -759,7 +759,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
             builder: (context) => FriendProfilePage(
               friendId: friendId,
               friendUsername: username,
-              friendMbti: mbtiRaw!.toUpperCase(),
+              friendMbti: mbtiRaw.toUpperCase(),
               friendProfilePic: hasImage ? profilePic : null,
             ),
           ),
@@ -821,7 +821,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        mbtiRaw!.toUpperCase(),
+                        mbtiRaw.toUpperCase(),
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -878,7 +878,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
             builder: (context) => FriendProfilePage(
               friendId: friend['id'] as String,
               friendUsername: username,
-              friendMbti: mbtiRaw!.toUpperCase(),
+              friendMbti: mbtiRaw.toUpperCase(),
               friendProfilePic: hasImage ? profilePic : null,
             ),
           ),
@@ -927,7 +927,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                     const SizedBox(height: 6),
                     if (hasValidMbti)
                       Text(
-                        mbtiRaw!.toUpperCase(),
+                        mbtiRaw.toUpperCase(),
                         style: const TextStyle(
                           fontSize: 15,
                           color: Color(0xFF1E1E1E),

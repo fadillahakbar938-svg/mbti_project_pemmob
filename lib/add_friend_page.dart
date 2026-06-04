@@ -384,7 +384,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          mbtiType!.toUpperCase(),
+                          mbtiType.toUpperCase(),
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -596,4 +596,4 @@ class _AddFriendPageState extends State<AddFriendPage> {
     );
   }
 }
-
+

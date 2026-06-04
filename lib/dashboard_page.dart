@@ -5,7 +5,6 @@ import '../services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
 import 'soul_match_page.dart';
 import 'yakin_page.dart';
-import 'result_page.dart';
 import 'match_detail_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -700,21 +699,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildUwuAvatarFace() {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.person_rounded,
-        color: Colors.grey,
-        size: 20,
-      ),
-    );
-  }
+
 
   Widget _buildMyTypeCard({
     required Color purpleLight,

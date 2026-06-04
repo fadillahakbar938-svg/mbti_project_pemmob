@@ -9,63 +9,6 @@ class TestIntroPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void _showStartConfirmation(
-      BuildContext context,
-    ) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-
-            title: const Row(
-              children: [
-                Icon(
-                  Icons.psychology,
-                  color: Color(0xFF8E59B3),
-                ),
-                SizedBox(width: 8),
-                Text("Mulai Tes?")
-              ],
-            ),
-
-            content: const Text(
-              "Pastikan kamu berada di tempat yang nyaman dan dapat menjawab seluruh pertanyaan dengan jujur.\n\nTes terdiri dari 80 pertanyaan dan membutuhkan sekitar 5 menit.",
-            ),
-
-            actions: [
-
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text("Batal"),
-              ),
-
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8E59B3),
-                ),
-
-                onPressed: () {
-                  _showStartConfirmation(context);
-                },
-
-                child: const Text(
-                  "Mulai",
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    }
     const bgCream = Color(0xFFFFFBF7);
   const purpleLight = Color(0xFFF3E3FC);
   const purpleMain = Color(0xFF8E59B3);

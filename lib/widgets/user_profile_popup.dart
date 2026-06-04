@@ -105,7 +105,7 @@ class _UserProfilePopupState extends State<UserProfilePopup>
     final hasValidMbti = mbtiRaw != null &&
         mbtiRaw.isNotEmpty &&
         mbtiRaw.toUpperCase() != 'NULL';
-    final mbti = hasValidMbti ? mbtiRaw!.toUpperCase() : null;
+    final mbti = hasValidMbti ? mbtiRaw.toUpperCase() : null;
     final profilePic = widget.user['avatar_emoji'] as String?;
     final hasImage = profilePic != null && profilePic.isNotEmpty;
 
