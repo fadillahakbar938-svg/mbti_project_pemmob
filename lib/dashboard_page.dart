@@ -683,7 +683,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           );
                           if (context.mounted) {
                             Navigator.pop(context);
-                            _loadData();
+                            _loadUserData();
                           }
                         }
                       },
