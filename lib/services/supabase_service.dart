@@ -498,8 +498,8 @@ Future<List<Map<String, dynamic>>> getFriends(String userId) async {
       .from('friend_requests')
       .select('''
         id, status, created_at,
-        sender:users!friend_requests_sender_id_fkey(id, username, mbti_type, profile_picture),
-        receiver:users!friend_requests_receiver_id_fkey(id, username, mbti_type, profile_picture)
+        sender:users!sender_id(id, username, mbti_type, profile_picture),
+        receiver:users!receiver_id(id, username, mbti_type, profile_picture)
       ''')
       .or('sender_id.eq.$userId,receiver_id.eq.$userId')
       .eq('status', 'accepted');
@@ -513,7 +513,7 @@ Future<List<Map<String, dynamic>>> getMatches(String userId) async {
       .from('match_results')
       .select('''
         id, compatibility_percentage, summary, created_at,
-        friend:users!match_results_friend_id_fkey(id, username, mbti_type, profile_picture)
+        friend:users!friend_id(id, username, mbti_type, profile_picture)
       ''')
       .eq('user_id', userId)
       .order('compatibility_percentage', ascending: false);
@@ -529,7 +529,7 @@ Future<List<Map<String, dynamic>>> getIncomingFriendRequests(
       .from('friend_requests')
       .select('''
         id, status, created_at,
-        sender:users!friend_requests_sender_id_fkey(id, username, profile_picture)
+        sender:users!sender_id(id, username, profile_picture)
       ''')
       .eq('receiver_id', userId)
       .eq('status', 'pending')
