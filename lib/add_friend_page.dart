@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'custom_bottom_navbar.dart';
 import 'services/supabase_service.dart';
+import 'widgets/user_profile_popup.dart'; // ← import popup
 import 'dart:async';
 
 class AddFriendPage extends StatefulWidget {
@@ -50,8 +51,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
         excludeUserId: _currentUserId,
       );
 
-      // Fetch semua status paralel, tidak sequential
-      // Jika gagal, default ke 'none' — tidak crash
       final statuses = <String, String>{};
       if (_currentUserId != null) {
         await Future.wait(
@@ -68,13 +67,12 @@ class _AddFriendPageState extends State<AddFriendPage> {
                 );
                 statuses[uid] = status;
               } catch (_) {
-                statuses[uid] = 'none'; // fallback jika gagal
+                statuses[uid] = 'none';
               }
             }
           }),
         );
       } else {
-        // Tidak login — semua 'none'
         for (final user in results) {
           statuses[user['id'] as String] = 'none';
         }
@@ -87,7 +85,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
         _isSearching = false;
       });
     } catch (e) {
-      print('DEBUG _doSearch ERROR: $e');
+      debugPrint('DEBUG _doSearch ERROR: $e');
       if (!mounted) return;
       setState(() => _isSearching = false);
     }
@@ -95,14 +93,12 @@ class _AddFriendPageState extends State<AddFriendPage> {
 
   final Map<String, DateTime> _requestSentAt = {};
 
-  /// Cek apakah masih dalam cooldown 2 menit
   bool _isOnCooldown(String userId) {
     final sentAt = _requestSentAt[userId];
     if (sentAt == null) return false;
     return DateTime.now().difference(sentAt).inSeconds < 120;
   }
 
-  /// Sisa waktu cooldown dalam detik
   int _cooldownRemaining(String userId) {
     final sentAt = _requestSentAt[userId];
     if (sentAt == null) return 0;
@@ -111,63 +107,61 @@ class _AddFriendPageState extends State<AddFriendPage> {
   }
 
   Future<void> _toggleFriendRequest(String targetUserId) async {
-  final currentId = _currentUserId;
-  if (currentId == null) return;
+    final currentId = _currentUserId;
+    if (currentId == null) return;
 
-  final currentStatus = _statusCache[targetUserId] ?? 'none';
+    final currentStatus = _statusCache[targetUserId] ?? 'none';
 
-  // Cek cooldown jika mau kirim request baru
-  if (currentStatus == 'none' && _isOnCooldown(targetUserId)) {
-    final sisa = _cooldownRemaining(targetUserId);
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Harap tunggu $sisa detik sebelum mengirim ulang.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.orange,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    return;
-  }
-
-  // Optimistic update
-  setState(() {
-    _statusCache[targetUserId] =
-        currentStatus == 'none' ? 'pending' : 'none';
-    if (currentStatus == 'none') {
-      _requestSentAt[targetUserId] = DateTime.now();
+    if (currentStatus == 'none' && _isOnCooldown(targetUserId)) {
+      final sisa = _cooldownRemaining(targetUserId);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Harap tunggu $sisa detik sebelum mengirim ulang.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.orange,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      return;
     }
-  });
 
-  try {
-    if (currentStatus == 'none') {
-      await SupabaseService.instance.sendFriendRequest(
-        senderId: currentId,
-        receiverId: targetUserId,
-      );
-    } else if (currentStatus == 'pending') {
-      await SupabaseService.instance.cancelFriendRequest(
-        senderId: currentId,
-        receiverId: targetUserId,
-      );
-      // Reset cooldown saat dibatalkan
-      setState(() => _requestSentAt.remove(targetUserId));
-    }
-  } catch (_) {
-    if (!mounted) return;
     setState(() {
-      _statusCache[targetUserId] = currentStatus;
-      _requestSentAt.remove(targetUserId);
+      _statusCache[targetUserId] =
+          currentStatus == 'none' ? 'pending' : 'none';
+      if (currentStatus == 'none') {
+        _requestSentAt[targetUserId] = DateTime.now();
+      }
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gagal, coba lagi.')),
-    );
+
+    try {
+      if (currentStatus == 'none') {
+        await SupabaseService.instance.sendFriendRequest(
+          senderId: currentId,
+          receiverId: targetUserId,
+        );
+      } else if (currentStatus == 'pending') {
+        await SupabaseService.instance.cancelFriendRequest(
+          senderId: currentId,
+          receiverId: targetUserId,
+        );
+        setState(() => _requestSentAt.remove(targetUserId));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _statusCache[targetUserId] = currentStatus;
+        _requestSentAt.remove(targetUserId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal, coba lagi.')),
+      );
+    }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,7 +197,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Find my friend to match',
+                        'Temukan temanmu di sini',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -260,8 +254,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _searchResults.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, index) =>
-          _buildUserCard(_searchResults[index]),
+      itemBuilder: (_, index) => _buildUserCard(_searchResults[index]),
     );
   }
 
@@ -276,7 +269,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
         controller: _searchController,
         onChanged: (value) {
           setState(() => _searchQuery = value);
-          // Debounce sederhana: search setelah user berhenti mengetik
           Future.delayed(const Duration(milliseconds: 500), () {
             if (_searchController.text == value) {
               _doSearch(value);
@@ -300,7 +292,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
                   },
                 )
               : null,
-          hintText: 'Search by username or ID',
+          hintText: 'Cari berdasarkan username...',
           hintStyle: TextStyle(
             color: Colors.grey[500],
             fontSize: 14,
@@ -313,6 +305,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
     );
   }
 
+  // ── CARD USER ────────────────────────────────────────────
   Widget _buildUserCard(Map<String, dynamic> user) {
     final userId = user['id'] as String;
     final username = user['username'] as String? ?? 'Unknown';
@@ -324,218 +317,242 @@ class _AddFriendPageState extends State<AddFriendPage> {
         mbtiType.isNotEmpty &&
         mbtiType.toUpperCase() != 'NULL';
 
-    final hasImage =
-        profilePic != null && profilePic.isNotEmpty && profilePic != 'default.png';
+    final hasImage = profilePic != null &&
+        profilePic.isNotEmpty &&
+        profilePic != 'default.png';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Avatar
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFF0EC),
-                shape: BoxShape.circle,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: hasImage
-                  ? Image.network(profilePic, fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          const Icon(Icons.person, size: 32, color: Colors.grey))
-                  : const Icon(Icons.person, size: 32, color: Colors.grey),
+    return GestureDetector(
+      // ── Tap card → buka popup profil ──
+      onTap: () => showUserProfilePopup(context, user),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
-            const SizedBox(width: 16),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF0EC),
+                  shape: BoxShape.circle,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: hasImage
+                    ? Image.network(
+                        profilePic,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.person, size: 32, color: Colors.grey),
+                      )
+                    : const Icon(Icons.person, size: 32, color: Colors.grey),
+              ),
+              const SizedBox(width: 16),
 
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    username,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF555555),
-                    ),
-                  ),
-                  if (hasValidMbti) ...[
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      username,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF555555),
                       ),
-                      child: Text(
-                        mbtiType!.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: _primaryColor,
+                    ),
+                    if (hasValidMbti) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: Text(
+                          mbtiType!.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    // Hint tap untuk lihat profil
+                    Text(
+                      'Ketuk untuk lihat profil',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
-                  const SizedBox(height: 8),
-                  _buildAddButton(userId, username, status),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              // Tombol tambah teman (terpisah dari onTap card)
+              GestureDetector(
+                onTap: () {}, // absorb tap agar tidak trigger card tap
+                child: _buildAddButton(userId, username, status),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildAddButton(String userId, String username, String status) {
-  final isPending = status == 'pending';
-  final isAccepted = status == 'accepted';
-  final isIncoming = status == 'incoming'; 
-  final onCooldown = isPending && _isOnCooldown(userId);
+    final isPending = status == 'pending';
+    final isAccepted = status == 'accepted';
+    final isIncoming = status == 'incoming';
+    final onCooldown = isPending && _isOnCooldown(userId);
 
-  if (isAccepted) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.green[50],
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_outline, size: 14, color: Colors.green[600]),
-          const SizedBox(width: 4),
-          Text(
-            'Berteman',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.green[700],
+    if (isAccepted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline, size: 14, color: Colors.green[600]),
+            const SizedBox(width: 4),
+            Text(
+              'Berteman',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.green[700],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
+    }
 
-  if (isIncoming) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3E3FC),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.notifications_active_rounded, size: 14,
-              color: Color(0xFF8E59B3)),
-          SizedBox(width: 4),
-          Text('Minta diterima',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
-                  color: Color(0xFF8E59B3))),
-        ],
-      ),
-    );
-  }
+    if (isIncoming) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3E3FC),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.notifications_active_rounded,
+                size: 14, color: Color(0xFF8E59B3)),
+            SizedBox(width: 4),
+            Text(
+              'Minta diterima',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8E59B3),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-  return SizedBox(
-    height: 36,
-    child: ElevatedButton(
-      // Disable tombol saat cooldown aktif
-      onPressed: onCooldown
-          ? null
-          : () async {
-              await _toggleFriendRequest(userId);
-              if (!mounted) return;
-              final newStatus = _statusCache[userId];
-              ScaffoldMessenger.of(context)
-                ..clearSnackBars()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      newStatus == 'pending'
-                          ? 'Permintaan pertemanan dikirim ke $username! 🚀'
-                          : 'Permintaan pertemanan dibatalkan.',
+    return SizedBox(
+      height: 36,
+      child: ElevatedButton(
+        onPressed: onCooldown
+            ? null
+            : () async {
+                await _toggleFriendRequest(userId);
+                if (!mounted) return;
+                final newStatus = _statusCache[userId];
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        newStatus == 'pending'
+                            ? 'Permintaan pertemanan dikirim ke $username! 🚀'
+                            : 'Permintaan pertemanan dibatalkan.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: _primaryColor,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      duration: const Duration(seconds: 2),
                     ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: _primaryColor,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-            },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: onCooldown
-            ? Colors.grey[200]
-            : isPending
-                ? Colors.grey[300]
-                : _primaryColor,
-        foregroundColor: onCooldown || isPending
-            ? Colors.grey[500]
-            : Colors.white,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
+                  );
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: onCooldown
+              ? Colors.grey[200]
+              : isPending
+                  ? Colors.grey[300]
+                  : _primaryColor,
+          foregroundColor:
+              onCooldown || isPending ? Colors.grey[500] : Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              onCooldown
+                  ? Icons.hourglass_top_rounded
+                  : isPending
+                      ? Icons.hourglass_empty_rounded
+                      : Icons.add_rounded,
+              size: 15,
+            ),
+            const SizedBox(width: 4),
             onCooldown
-                ? Icons.hourglass_top_rounded
-                : isPending
-                    ? Icons.hourglass_empty_rounded
-                    : Icons.add_rounded,
-            size: 15,
-          ),
-          const SizedBox(width: 4),
-          // Tampilkan countdown jika cooldown aktif
-          onCooldown
-              ? _CooldownText(
-                  userId: userId,
-                  requestSentAt: _requestSentAt,
-                )
-              : Text(
-                  isPending ? 'Menunggu' : 'Tambah Teman',
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-        ],
+                ? _CooldownText(
+                    userId: userId,
+                    requestSentAt: _requestSentAt,
+                  )
+                : Text(
+                    isPending ? 'Menunggu' : 'Tambah Teman',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   Widget _buildIdleState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48),
         child: Column(
           children: [
-            Icon(Icons.manage_search_rounded,
-                size: 60, color: Colors.grey[300]),
+            Icon(Icons.manage_search_rounded, size: 60, color: Colors.grey[300]),
             const SizedBox(height: 12),
             Text(
-              'Search for friends',
+              'Cari teman di sini',
               style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[500],
@@ -543,7 +560,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Type a username to get started',
+              'Ketik username untuk mulai mencari',
               style: TextStyle(fontSize: 13, color: Colors.grey[400]),
             ),
           ],
@@ -558,11 +575,10 @@ class _AddFriendPageState extends State<AddFriendPage> {
         padding: const EdgeInsets.symmetric(vertical: 48),
         child: Column(
           children: [
-            Icon(Icons.person_search_rounded,
-                size: 60, color: Colors.grey[300]),
+            Icon(Icons.person_search_rounded, size: 60, color: Colors.grey[300]),
             const SizedBox(height: 12),
             Text(
-              'No users found',
+              'Pengguna tidak ditemukan',
               style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -570,7 +586,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Try another username or ID',
+              'Coba username yang lain',
               style: TextStyle(fontSize: 13, color: Colors.grey[500]),
             ),
           ],
@@ -580,7 +596,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
   }
 }
 
-/// Widget countdown yang update setiap detik
+// ── Countdown widget ──────────────────────────────────────
 class _CooldownText extends StatefulWidget {
   final String userId;
   final Map<String, DateTime> requestSentAt;

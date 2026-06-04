@@ -22,13 +22,16 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _showProfileMenu = false;
   bool _showNotificationPanel = false;
   Key _notifKey = UniqueKey();
+
   int totalTests = 0;
+  int totalMatches = 0;
+  int totalCards = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    loadTotalTests();
+    _loadCounts();
   }
 
   String _greetingForTimeOfDay() {
@@ -39,12 +42,22 @@ class _DashboardPageState extends State<DashboardPage> {
     return 'Selamat malam';
   }
 
-  Future<void> loadTotalTests() async {
+  Future<void> _loadCounts() async {
     final user = SupabaseService.instance.currentUser;
     if (user == null) return;
-    final count = await SupabaseService.instance.getTotalTests(user.id);
+
+    final results = await Future.wait([
+      SupabaseService.instance.getTotalTests(user.id),
+      SupabaseService.instance.getTotalMatches(user.id),
+      SupabaseService.instance.getTotalCards(user.id),
+    ]);
+
     if (!mounted) return;
-    setState(() => totalTests = count);
+    setState(() {
+      totalTests = results[0];
+      totalMatches = results[1];
+      totalCards = results[2];
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -94,12 +107,13 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!mounted) return;
       setState(() {
         _isGuest = false;
-        _displayName = authUser.email?.split('@').first ?? 'Pengguna';
+        _displayName =
+            SupabaseService.instance.currentUser?.email?.split('@').first ??
+                'Pengguna';
       });
     }
   }
 
-  // ── Tutup semua panel saat tap di luar ──
   void _closeAllPanels() {
     if (_showProfileMenu || _showNotificationPanel) {
       setState(() {
@@ -126,7 +140,6 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: bgCream,
       body: SafeArea(
         child: GestureDetector(
-          // Tap di luar panel menutupnya
           onTap: _closeAllPanels,
           behavior: HitTestBehavior.translucent,
           child: SingleChildScrollView(
@@ -134,19 +147,16 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header area dengan Stack untuk panel mengambang ──
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Baris nama + tombol notif + avatar
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Kiri: sapaan + nama
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,17 +181,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ],
                               ),
                             ),
-
-                            // Kanan: tombol notifikasi + avatar profil
                             Row(
                               children: [
-                                // ── Tombol Notifikasi (lonceng) ──
                                 _buildNotificationButton(
                                   iconColor: textDark,
                                   purpleLight: purpleLight,
                                 ),
                                 const SizedBox(width: 12),
-                                // ── Tombol Avatar Profil ──
                                 _buildProfileAvatarButton(
                                   profilePicture: _profilePicture,
                                   avatarPink: avatarPink,
@@ -200,7 +206,6 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
 
-                    // ── Panel Notifikasi mengambang ──
                     if (_showNotificationPanel)
                       Positioned(
                         top: 52,
@@ -209,7 +214,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: NotificationPanel(key: _notifKey),
                       ),
 
-                    // ── Dropdown Menu Profil mengambang ──
                     if (_showProfileMenu)
                       Positioned(
                         top: 48,
@@ -228,28 +232,40 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Statistik (Matches, Tests, Cards) ──
+                // ── Statistik ──
                 Row(
                   children: [
                     Expanded(
-                      child: _buildStatCard('💖',
-                          _isGuest ? '-' : '24', 'Matches', textDark),
+                      child: _buildStatCard(
+                        '💖',
+                        _isGuest ? '-' : totalMatches.toString(),
+                        'Matches',
+                        textDark,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: _buildStatCard(
-                          '📋', totalTests.toString(), 'Tes', textDark),
+                        '📋',
+                        totalTests.toString(),
+                        'Tes',
+                        textDark,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
-                      child: _buildStatCard('🎴',
-                          _isGuest ? '-' : '10', 'Kartu', textDark),
+                      child: _buildStatCard(
+                        '🎴',
+                        _isGuest ? '-' : totalCards.toString(),
+                        'Kartu',
+                        textDark,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // ── Dua tombol aksi besar ──
+                // ── Tombol aksi ──
                 Row(
                   children: [
                     Expanded(
@@ -267,7 +283,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (_) => const YakinPage()),
-                                );
+                                ).then((_) => _loadCounts());
                               },
                       ),
                     ),
@@ -287,7 +303,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (_) => const SoulMatchPage()),
-                                );
+                                ).then((_) => _loadCounts());
                               },
                       ),
                     ),
@@ -349,7 +365,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // ── Tombol lonceng notifikasi ──
   Widget _buildNotificationButton({
     required Color iconColor,
     required Color purpleLight,
@@ -374,12 +389,9 @@ class _DashboardPageState extends State<DashboardPage> {
           borderRadius: BorderRadius.circular(14),
           onTap: () {
             setState(() {
-              // Toggle panel notifikasi
               _showNotificationPanel = !_showNotificationPanel;
-              // Tutup profile menu jika notif dibuka
               if (_showNotificationPanel) {
                 _showProfileMenu = false;
-                // Regenerate key agar data selalu fresh
                 _notifKey = UniqueKey();
               }
             });
@@ -396,7 +408,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // ── Tombol avatar profil ──
   Widget _buildProfileAvatarButton({
     required String? profilePicture,
     required Color avatarPink,
@@ -421,12 +432,8 @@ class _DashboardPageState extends State<DashboardPage> {
           customBorder: const CircleBorder(),
           onTap: () {
             setState(() {
-              // Toggle profile menu
               _showProfileMenu = !_showProfileMenu;
-              // Tutup notifikasi jika profile dibuka
-              if (_showProfileMenu) {
-                _showNotificationPanel = false;
-              }
+              if (_showProfileMenu) _showNotificationPanel = false;
             });
           },
           child: Center(
@@ -625,9 +632,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _handleLogout() async {
-    if (!_isGuest) {
-      await SupabaseService.instance.signOut();
-    }
+    if (!_isGuest) await SupabaseService.instance.signOut();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
@@ -651,23 +656,17 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 20)),
           const SizedBox(height: 6),
-          Text(
-            count,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Text(count,
+              style: TextStyle(
+                  color: textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900)),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -697,29 +696,21 @@ class _DashboardPageState extends State<DashboardPage> {
                 width: 36,
                 height: 36,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
+                    color: Colors.white, shape: BoxShape.circle),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
               const SizedBox(height: 20),
-              Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+              Text(title,
+                  style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: textColor.withValues(alpha: 0.6),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text(subtitle,
+                  style: TextStyle(
+                      color: textColor.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -740,9 +731,7 @@ class _DashboardPageState extends State<DashboardPage> {
       width: 155,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(22),
-      ),
+          color: cardBg, borderRadius: BorderRadius.circular(22)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -751,32 +740,23 @@ class _DashboardPageState extends State<DashboardPage> {
               width: 54,
               height: 54,
               decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 28)),
-              ),
+                  color: Colors.white, shape: BoxShape.circle),
+              child:
+                  Center(child: Text(emoji, style: const TextStyle(fontSize: 28))),
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            mbti,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              height: 1.1,
-            ),
-          ),
-          Text(
-            description,
-            style: TextStyle(
-              color: textColor.withValues(alpha: 0.6),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(mbti,
+              style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  height: 1.1)),
+          Text(description,
+              style: TextStyle(
+                  color: textColor.withValues(alpha: 0.6),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -791,10 +771,9 @@ class _DashboardPageState extends State<DashboardPage> {
           Text(
             '${(matchPercentage * 100).toInt()}% cocok',
             style: TextStyle(
-              color: progressColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
+                color: progressColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -814,13 +793,9 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           const Text('🔒', style: TextStyle(fontSize: 28)),
           const SizedBox(height: 8),
-          const Text(
-            'Fitur Terbatas untuk Tamu',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2D2132),
-            ),
-          ),
+          const Text('Fitur Terbatas untuk Tamu',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: Color(0xFF2D2132))),
           const SizedBox(height: 4),
           const Text(
             'Silakan selesaikan tes MBTI atau daftar akun baru untuk melihat kecocokan kepribadianmu.',
@@ -830,17 +805,10 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 12),
           TextButton(
             onPressed: () => Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/login',
-              (route) => false,
-            ),
-            child: const Text(
-              'Masuk / Daftar Sekarang',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF8E59B3),
-              ),
-            ),
+                context, '/login', (route) => false),
+            child: const Text('Masuk / Daftar Sekarang',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Color(0xFF8E59B3))),
           ),
         ],
       ),
@@ -851,8 +819,7 @@ class _DashboardPageState extends State<DashboardPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text(
-          'Fitur ini memerlukan akun terdaftar. Yuk daftar dulu! 🔮',
-        ),
+            'Fitur ini memerlukan akun terdaftar. Yuk daftar dulu! 🔮'),
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF8E59B3),
         shape:
