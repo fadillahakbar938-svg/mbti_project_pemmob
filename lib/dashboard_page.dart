@@ -467,15 +467,19 @@ class _DashboardPageState extends State<DashboardPage> {
     required Color textDark,
     required Color textMuted,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: purpleLight,
+    return Material(
+      color: purpleLight,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(context, '/result');
+        },
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 80,
@@ -538,6 +542,8 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+    )
+    )
     );
   }
 
