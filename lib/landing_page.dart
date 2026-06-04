@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../services/supabase_service.dart';
 import 'widgets/auth_background_blobs.dart';
 import 'widgets/detective_sheep_logo.dart';
 
@@ -23,7 +22,7 @@ class _LandingPageState extends State<LandingPage>
   late Animation<double> _buttonsEntry;
   late Animation<double> _floatAnim;
 
-  bool _googleLoading = false;
+
 
   @override
   void initState() {
@@ -78,29 +77,6 @@ class _LandingPageState extends State<LandingPage>
     _floatController.dispose();
     _bgController.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleGoogleLogin() async {
-    setState(() => _googleLoading = true);
-    final result = await SupabaseService.instance.loginWithGoogle();
-    if (!mounted) return;
-    setState(() => _googleLoading = false);
-
-    if (!result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage ?? 'Login Google gagal'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      return;
-    }
-
-    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override
@@ -274,48 +250,6 @@ class _LandingPageState extends State<LandingPage>
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            // Pembatas / Divider Garis Tipis Soft
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                    color: primaryColor.withOpacity(0.2),
-                                    height: 1,
-                                  ),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 14),
-                                  child: Text(
-                                    'atau',
-                                    style: TextStyle(
-                                      color: subTextColor,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                    color: primaryColor.withOpacity(0.2),
-                                    height: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            // Tombol LOGIN GOOGLE (Tombol Putih Bersih)
-                            SizedBox(
-                              width: double.infinity,
-                              height: 54,
-                              child: _GoogleButtonPastel(
-                                loading: _googleLoading,
-                                onPressed: _googleLoading
-                                    ? null
-                                    : _handleGoogleLogin,
-                                primaryColor: primaryColor,
-                                textColor: textColor,
-                              ),
-                            ),
                             const SizedBox(height: 12),
                             // Tombol MASUK SEBAGAI GUEST (Paling Bawah)
                             SizedBox(
@@ -386,87 +320,6 @@ class _LandingPageState extends State<LandingPage>
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
-      ),
-    );
-  }
-}
-
-class _GoogleButtonPastel extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final bool loading;
-  final Color primaryColor;
-  final Color textColor;
-
-  const _GoogleButtonPastel({
-    required this.onPressed,
-    this.loading = false,
-    required this.primaryColor,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: primaryColor.withOpacity(0.2)),
-      ),
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: loading
-            ? SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation(primaryColor),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'G',
-                        style: TextStyle(
-                          color: Color(0xFF8E59B3),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Lanjutkan dengan Google',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
-import 'soul_match_page.dart';
 
 
 class MbtiProfile {
