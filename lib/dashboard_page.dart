@@ -479,7 +479,16 @@ class _DashboardPageState extends State<DashboardPage> {
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/result');
+          if (_isGuest) {
+            _showGuestWarning();
+          } else if (_mbtiType == null || _mbtiType == 'UNKNOWN') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const YakinPage()),
+            );
+          } else {
+            Navigator.pushNamed(context, '/result');
+          }
         },
         borderRadius: BorderRadius.circular(24),
         child: Container(

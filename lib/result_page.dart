@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
+import 'soul_match_page.dart';
 
 
 class MbtiProfile {
@@ -860,11 +861,9 @@ class _ResultPageState extends State<ResultPage> {
       ),
       child: ElevatedButton(
         onPressed: () {
-          // Navigate to Match Page flow, resetting stack
-          Navigator.pushNamedAndRemoveUntil(
+          Navigator.push(
             context,
-            '/home', // go back to dashboard
-            (route) => false,
+            MaterialPageRoute(builder: (context) => const SoulMatchPage()),
           );
         },
         style: ElevatedButton.styleFrom(
