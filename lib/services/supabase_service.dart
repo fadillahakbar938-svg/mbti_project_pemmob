@@ -571,6 +571,61 @@ Future<DateTime?> getOutgoingPendingRequestTime({
   if (response == null) return null;
   return DateTime.tryParse(response['created_at'].toString());
 }
+/// Jumlah total match yang sudah dilakukan user
+  Future<int> getTotalMatches(String userId) async {
+    final response = await _client
+        .from('match_results')
+        .select('id')
+        .eq('user_id', userId);
+    return response.length;
+  }
+
+  /// Jumlah kartu karakter yang sudah terbuka
+  /// Sumber: MBTI tipe dari riwayat tes sendiri + MBTI teman dari match
+  Future<int> getTotalCards(String userId) async {
+    final unlockedTypes = await getUnlockedCardTypes(userId);
+    return unlockedTypes.length;
+  }
+
+  /// Set MBTI type yang sudah terbuka sebagai kartu (untuk CharacterCards widget)
+  Future<Set<String>> getUnlockedCardTypes(String userId) async {
+    final Set<String> unlocked = {};
+
+    // 1. Dari riwayat tes sendiri (tiap tipe unik = 1 kartu)
+    try {
+      final results = await _client
+          .from('results')
+          .select('mbti_type')
+          .eq('user_id', userId);
+      for (final r in results) {
+        final mbti = r['mbti_type'] as String?;
+        if (mbti != null &&
+            mbti.isNotEmpty &&
+            mbti.toUpperCase() != 'NULL') {
+          unlocked.add(mbti.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    // 2. Dari match dengan teman (MBTI teman = kartu baru)
+    try {
+      final matches = await _client
+          .from('match_results')
+          .select('friend:users!friend_id(mbti_type)')
+          .eq('user_id', userId);
+      for (final m in matches) {
+        final friend = m['friend'] as Map<String, dynamic>?;
+        final mbti = friend?['mbti_type'] as String?;
+        if (mbti != null &&
+            mbti.isNotEmpty &&
+            mbti.toUpperCase() != 'NULL') {
+          unlocked.add(mbti.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    return unlocked;
+  }
 }
 
 

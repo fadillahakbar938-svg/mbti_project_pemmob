@@ -1,247 +1,305 @@
 import 'package:flutter/material.dart';
+import '../services/supabase_service.dart';
 
-/// Panel notifikasi dropdown (desain lavender) — overlay di dashboard.
-class NotificationPanel extends StatelessWidget {
+class NotificationPanel extends StatefulWidget {
   const NotificationPanel({super.key});
 
-  static const Color _panelBg = Color(0xFFF3E8FF);
-  static const Color _textDark = Color(0xFF2D2132);
-  static const Color _textMuted = Color(0xFF7D6F83);
-  static const Color _avatarPlaceholder = Color(0xFFFCE3EC);
-
   @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      elevation: 16,
-      shadowColor: Colors.black.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(32),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        decoration: BoxDecoration(
-          color: _panelBg,
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Notification',
-              style: TextStyle(
-                color: _textDark,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildEmptyStateCard(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyStateCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: _avatarPlaceholder,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Belum ada notifikasi',
-                  style: TextStyle(
-                    color: _textDark,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Permintaan pertemanan dan pembaruan lainnya akan muncul di sini.',
-                  style: TextStyle(
-                    color: _textMuted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  State<NotificationPanel> createState() => _NotificationPanelState();
 }
 
-/// Kartu permintaan pertemanan — dipakai saat ada data notifikasi.
-class FriendRequestNotificationCard extends StatelessWidget {
-  const FriendRequestNotificationCard({
-    super.key,
-    required this.username,
-    this.onApprove,
-    this.onReject,
-  });
+class _NotificationPanelState extends State<NotificationPanel> {
+  static const Color _primaryColor = Color(0xFF8E59B3);
 
-  final String username;
-  final VoidCallback? onApprove;
-  final VoidCallback? onReject;
+  bool _loading = true;
+  List<Map<String, dynamic>> _requests = [];
+  final Set<int> _processingIds = {};
 
-  static const Color _textDark = Color(0xFF2D2132);
-  static const Color _purpleMain = Color(0xFF8B5CF6);
-  static const Color _purpleLightBtn = Color(0xFFF5F3FF);
-  static const Color _avatarPlaceholder = Color(0xFFFCE3EC);
+  @override
+  void initState() {
+    super.initState();
+    _loadRequests();
+  }
+
+  Future<void> _loadRequests() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+
+    final userId = SupabaseService.instance.currentUser?.id;
+    if (userId == null) {
+      setState(() => _loading = false);
+      return;
+    }
+
+    try {
+      final requests =
+          await SupabaseService.instance.getIncomingFriendRequests(userId);
+      if (!mounted) return;
+      setState(() {
+        _requests = requests;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _accept(int requestId) async {
+    if (_processingIds.contains(requestId)) return;
+    setState(() => _processingIds.add(requestId));
+    try {
+      await SupabaseService.instance.acceptFriendRequest(requestId);
+      if (!mounted) return;
+      setState(() {
+        _requests.removeWhere((r) => (r['id'] as int) == requestId);
+        _processingIds.remove(requestId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Permintaan pertemanan diterima! 🎉'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: _primaryColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _processingIds.remove(requestId));
+    }
+  }
+
+  Future<void> _reject(int requestId) async {
+    if (_processingIds.contains(requestId)) return;
+    setState(() => _processingIds.add(requestId));
+    try {
+      await SupabaseService.instance.rejectFriendRequest(requestId);
+      if (!mounted) return;
+      setState(() {
+        _requests.removeWhere((r) => (r['id'] as int) == requestId);
+        _processingIds.remove(requestId);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _processingIds.remove(requestId));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFF3E3FC),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  color: _avatarPlaceholder,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: _textDark,
-                      height: 1.35,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: username,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const TextSpan(
-                        text: ' ingin berteman dengan anda',
-                      ),
-                    ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Notifikasi',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2D2132),
                   ),
                 ),
-              ),
-            ],
+                Row(
+                  children: [
+                    if (_requests.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _primaryColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_requests.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    GestureDetector(
+                      onTap: _loadRequests,
+                      child: Icon(Icons.refresh_rounded,
+                          size: 20, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  label: 'Setujui',
-                  backgroundColor: _purpleMain,
-                  textColor: Colors.white,
-                  onTap: onApprove,
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(
+                  child: CircularProgressIndicator(color: _primaryColor)),
+            )
+          else if (_requests.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.notifications_none_rounded,
+                        size: 32, color: Colors.grey[400]),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Belum ada notifikasi',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2D2132)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Permintaan pertemanan dan pembaruan\nlainnya akan muncul di sini.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          height: 1.4),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButton(
-                  label: 'Tolak',
-                  backgroundColor: _purpleLightBtn,
-                  textColor: _textDark,
-                  onTap: onReject,
-                ),
+            )
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: _requests.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) => _buildRequestItem(_requests[i]),
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );
   }
-}
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.label,
-    required this.backgroundColor,
-    required this.textColor,
-    this.onTap,
-  });
+  Widget _buildRequestItem(Map<String, dynamic> request) {
+    final requestId = request['id'] as int;
+    final sender = request['sender'] as Map<String, dynamic>?;
+    final username = sender?['username'] as String? ?? 'Pengguna';
+    final profilePic = sender?['profile_picture'] as String?;
+    final hasImage = profilePic != null &&
+        profilePic.isNotEmpty &&
+        profilePic != 'default.png';
+    final isProcessing = _processingIds.contains(requestId);
 
-  final String label;
-  final Color backgroundColor;
-  final Color textColor;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+                color: Color(0xFFFCE3EC), shape: BoxShape.circle),
+            clipBehavior: Clip.antiAlias,
+            child: hasImage
+                ? Image.network(
+                    profilePic,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                        size: 22, color: Colors.grey),
+                  )
+                : const Icon(Icons.person, size: 22, color: Colors.grey),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '$username ingin berteman dengan anda',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2D2132),
+                height: 1.3,
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 8),
+          if (isProcessing)
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: _primaryColor),
+            )
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildChip(
+                    label: 'Setuju',
+                    color: _primaryColor,
+                    onTap: () => _accept(requestId)),
+                const SizedBox(width: 6),
+                _buildChip(
+                    label: 'Tolak',
+                    color: Colors.grey[400]!,
+                    onTap: () => _reject(requestId)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(
+      {required String label,
+      required Color color,
+      required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration:
+            BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+        child: Text(label,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold)),
       ),
     );
   }
