@@ -8,7 +8,6 @@ import 'login_page.dart';
 import 'register_page.dart';
 import 'dashboard_page.dart'; 
 import 'cards_page.dart';
-import 'profile_page.dart';
 import 'result_page.dart';
 
 Future<void> main() async {
@@ -51,7 +50,6 @@ class MyApp extends StatelessWidget {
         // Rute tujuan diubah ke DashboardPage yang baru saja dibuat
         '/home': (context) => const DashboardPage(),
         '/cards': (context) => const CardsPage(),
-        '/profile': (context) => const ProfilePage(),
         '/result': (context) => const ResultPage(),
       },
     );

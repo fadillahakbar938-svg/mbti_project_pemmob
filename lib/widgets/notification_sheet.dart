@@ -103,8 +103,10 @@ class _NotificationPanelState extends State<NotificationPanel> {
     try {
       if (type == 'friend') {
         await SupabaseService.instance.rejectFriendRequest(requestId);
-      } else {
+      } else if (type == 'match') {
         await SupabaseService.instance.rejectMatchRequest(requestId);
+      } else if (type == 'notification') {
+        await SupabaseService.instance.deleteNotification(requestId);
       }
       if (!mounted) return;
       setState(() {
@@ -320,6 +322,22 @@ class _NotificationPanelState extends State<NotificationPanel> {
                     color: Colors.grey[400]!,
                     onTap: () => _reject(requestId, type)),
               ],
+            )
+          else
+            GestureDetector(
+              onTap: () => _reject(requestId, type),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 18,
+                  color: Colors.grey,
+                ),
+              ),
             ),
         ],
       ),

@@ -15,7 +15,7 @@ class CardsPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Character Cards',
+          'Kartu Karakter',
           style: TextStyle(color: Color(0xFF2D2132)),
         ),
         iconTheme: const IconThemeData(color: Color(0xFF2D2132)),

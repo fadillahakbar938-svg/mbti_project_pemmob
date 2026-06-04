@@ -1,6 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../card_detail_page.dart';
+
+import '../services/supabase_service.dart';
 
 class _CardTheme {
   final Color background;
@@ -9,17 +11,80 @@ class _CardTheme {
   const _CardTheme({required this.background, required this.accent});
 }
 
-class CharacterCards extends StatelessWidget {
+class CharacterCards extends StatefulWidget {
   const CharacterCards({super.key});
 
+  @override
+  State<CharacterCards> createState() => _CharacterCardsState();
+}
+
+class _CharacterCardsState extends State<CharacterCards> {
   static const Color _emptyBg = Color(0xFFF5EFF7);
   static const Color _textMuted = Color(0xFF7D6F83);
 
-  final List<Map<String, String>> _unlocked = const [
-    {'code': 'INFP', 'title': 'Dreamer', 'emoji': '🐑', 'pos': '0'},
-    {'code': 'ISTJ', 'title': 'Inspector', 'emoji': '🦉', 'pos': '1'},
-    {'code': 'INTP', 'title': 'Thinker', 'emoji': '🐧', 'pos': '10'},
+  bool _isLoading = true;
+  Set<String> _unlockedTypes = {};
+
+  final List<Map<String, String>> _allTypes = [
+    {'code': 'INTJ', 'title': 'Arsitek', 'emoji': '♟️'},
+    {'code': 'INTP', 'title': 'Pemikir', 'emoji': '🐧'},
+    {'code': 'ENTJ', 'title': 'Komandan', 'emoji': '🦅'},
+    {'code': 'ENTP', 'title': 'Pendebat', 'emoji': '🦊'},
+    {'code': 'INFJ', 'title': 'Advokat', 'emoji': '🕊️'},
+    {'code': 'INFP', 'title': 'Mediator', 'emoji': '🐑'},
+    {'code': 'ENFJ', 'title': 'Protagonis', 'emoji': '🐕'},
+    {'code': 'ENFP', 'title': 'Juru Kampanye', 'emoji': '🐬'},
+    {'code': 'ISTJ', 'title': 'Ahli Logistik', 'emoji': '🦉'},
+    {'code': 'ISFJ', 'title': 'Pembela', 'emoji': '🐢'},
+    {'code': 'ESTJ', 'title': 'Eksekutif', 'emoji': '🦁'},
+    {'code': 'ESFJ', 'title': 'Konsul', 'emoji': '🐘'},
+    {'code': 'ISTP', 'title': 'Pengrajin', 'emoji': '🛠️'},
+    {'code': 'ISFP', 'title': 'Petualang', 'emoji': '🎨'},
+    {'code': 'ESTP', 'title': 'Pengusaha', 'emoji': '🚀'},
+    {'code': 'ESFP', 'title': 'Penghibur', 'emoji': '🦚'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnlockedCards();
+  }
+
+  Future<void> _loadUnlockedCards() async {
+    final userId = SupabaseService.instance.currentUser?.id;
+    if (userId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    final Set<String> unlocked = {};
+
+    try {
+      final myResult = await SupabaseService.instance.getLatestResult(userId);
+      if (myResult != null && myResult['mbti_type'] != null) {
+        unlocked.add((myResult['mbti_type'] as String).toUpperCase());
+      }
+
+      final matches = await SupabaseService.instance.getMatches(userId);
+      for (var match in matches) {
+        final friendMbti = match['friend_mbti'] as String?;
+        if (friendMbti != null && friendMbti.isNotEmpty && friendMbti.toUpperCase() != 'NULL') {
+          unlocked.add(friendMbti.toUpperCase());
+        }
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    if (mounted) {
+      setState(() {
+        _unlockedTypes = unlocked;
+        _isLoading = false;
+      });
+    }
+  }
+
+
 
   _CardTheme _themeFor(String code) {
     switch (code) {
@@ -48,7 +113,16 @@ class CharacterCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unlockedMap = {for (final e in _unlocked) int.parse(e['pos']!): e};
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40.0),
+          child: CircularProgressIndicator(color: Color(0xFF8E59B3)),
+        ),
+      );
+    }
+
+    final int unlockedCount = _unlockedTypes.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +131,7 @@ class CharacterCards extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Character Cards',
+              'Kartu Karakter',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
@@ -65,7 +139,7 @@ class CharacterCards extends StatelessWidget {
               ),
             ),
             Text(
-              '3/16',
+              '$unlockedCount/16',
               style: TextStyle(
                 color: Colors.purple.shade400,
                 fontSize: 14,
@@ -83,7 +157,7 @@ class CharacterCards extends StatelessWidget {
           ),
           child: FractionallySizedBox(
             alignment: Alignment.centerLeft,
-            widthFactor: 3 / 16,
+            widthFactor: unlockedCount / 16,
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF8E59B3),
@@ -94,7 +168,7 @@ class CharacterCards extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'Unlock cards by discovering new types!',
+          'Buka kartu dengan menemukan tipe MBTI baru!',
           style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
         ),
         const SizedBox(height: 20),
@@ -102,16 +176,17 @@ class CharacterCards extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1,
+            crossAxisCount: 8,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 0.8,
           ),
           itemCount: 16,
           itemBuilder: (context, index) {
-            final unlocked = unlockedMap[index];
-            if (unlocked != null) {
-              return _buildUnlockedCard(context, unlocked);
+            final typeData = _allTypes[index];
+            final code = typeData['code']!;
+            if (_unlockedTypes.contains(code)) {
+              return _buildUnlockedCard(context, typeData);
             }
             return _buildPlaceholderCard();
           },
@@ -225,16 +300,16 @@ class CharacterCards extends StatelessWidget {
             child: const Icon(Icons.emoji_events, color: Color(0xFFEE9F36)),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Collection Progress',
+                const Text(
+                  'Progres Koleksi',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                 ),
-                SizedBox(height: 6),
-                Text('3 of 16 soul types unlocked · 19% complete'),
+                const SizedBox(height: 6),
+                Text('${_unlockedTypes.length} dari 16 tipe soul terbuka · ${((_unlockedTypes.length / 16) * 100).toInt()}% selesai'),
               ],
             ),
           ),

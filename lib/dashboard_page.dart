@@ -6,6 +6,7 @@ import 'custom_bottom_navbar.dart';
 import 'soul_match_page.dart';
 import 'yakin_page.dart';
 import 'result_page.dart';
+import 'match_detail_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -125,7 +126,7 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         _isGuest = false;
         _displayName = displayName;
-        _profilePicture = profile?['profile_picture'] as String?;
+        _profilePicture = profile?['avatar_emoji'] as String?;
         _mbtiType = mbti;
         _mbtiNickname = mbtiNickname ?? 'Uji dirimu sekarang';
       });
@@ -408,29 +409,44 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Row(
                               children: _recentMatches.map((match) {
                                 // Extract data safely
+                                final friendData = match['friend'] as Map<String, dynamic>?;
+                                final friendUsername = friendData?['username'] as String? ?? 'Si Teman Baru';
                                 final friendMbti = match['friend_mbti'] as String? ?? 'N/A';
                                 final percentageRaw = match['compatibility_percentage'];
                                 final percentage = (percentageRaw is num) ? percentageRaw.toDouble() / 100 : 0.50;
                                 
                                 // Provide default emojis and descriptions based on MBTI
                                 String emoji = '😊';
-                                String desc = 'Si Teman Baru';
-                                if (friendMbti == 'INTP') { emoji = '🐧'; desc = 'Si Pemikir'; }
-                                else if (friendMbti == 'INFP') { emoji = '🐑'; desc = 'Si Pemimpi'; }
-                                else if (friendMbti == 'ENFJ') { emoji = '🦊'; desc = 'Si Protagonis'; }
-                                else if (friendMbti == 'ESTJ') { emoji = '🦁'; desc = 'Si Eksekutif'; }
-                                else if (friendMbti == 'ISFP') { emoji = '🐼'; desc = 'Si Seniman'; }
+                                String desc = friendUsername; // Gunakan username asli dari database
+                                if (friendMbti == 'INTP') { emoji = '🐧'; }
+                                else if (friendMbti == 'INFP') { emoji = '🐑'; }
+                                else if (friendMbti == 'ENFJ') { emoji = '🦊'; }
+                                else if (friendMbti == 'ESTJ') { emoji = '🦁'; }
+                                else if (friendMbti == 'ISFP') { emoji = '🐼'; }
 
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 16),
-                                  child: _buildSoulMatchCard(
-                                    emoji,
-                                    friendMbti,
-                                    desc,
-                                    percentage,
-                                    blueLight,
-                                    blueMain,
-                                    textDark,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => MatchDetailPage(
+                                            historyId: match['id'] as int,
+                                            supabaseService: SupabaseService.instance,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: _buildSoulMatchCard(
+                                      emoji,
+                                      friendMbti,
+                                      desc,
+                                      percentage,
+                                      blueLight,
+                                      blueMain,
+                                      textDark,
+                                    ),
                                   ),
                                 );
                               }).toList(),
@@ -548,22 +564,139 @@ class _DashboardPageState extends State<DashboardPage> {
             });
           },
           child: Center(
-            child: profilePicture != null &&
-                    profilePicture.isNotEmpty &&
-                    profilePicture != 'default.png'
-                ? ClipOval(
-                    child: Image.network(
-                      profilePicture,
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildUwuAvatarFace(),
-                    ),
-                  )
-                : _buildUwuAvatarFace(),
+            child: Text(
+              profilePicture != null && profilePicture.isNotEmpty 
+                ? profilePicture 
+                : '👤', 
+              style: const TextStyle(fontSize: 20),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showEditProfileSheet() {
+    final TextEditingController usernameController =
+        TextEditingController(text: _displayName.replaceAll('@', ''));
+    String selectedEmoji = _profilePicture ?? '👤';
+
+    const List<String> emojis = [
+      '👤','👨','👩','👦','👧','👶','👵','👴','👨‍🦱','👩‍🦱',
+      '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+      '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🐢',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+                left: 24,
+                right: 24,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Edit Profil',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      border: OutlineInputBorder(),
+                      prefixText: '@',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Pilih Avatar Emotikon',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 150,
+                    child: GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 6,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                      ),
+                      itemCount: emojis.length,
+                      itemBuilder: (context, index) {
+                        final emoji = emojis[index];
+                        final isSelected = emoji == selectedEmoji;
+                        return InkWell(
+                          onTap: () {
+                            setStateModal(() {
+                              selectedEmoji = emoji;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.purple.shade100 : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected ? Colors.purple : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8E59B3),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () async {
+                        final newUsername = usernameController.text.trim();
+                        final userId = SupabaseService.instance.currentUser?.id;
+                        if (userId != null) {
+                          await SupabaseService.instance.updateUserProfile(
+                            userId,
+                            {
+                              if (newUsername.isNotEmpty) 'username': newUsername,
+                              'avatar_emoji': selectedEmoji,
+                            },
+                          );
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            _loadData();
+                          }
+                        }
+                      },
+                      child: const Text('Simpan'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -571,11 +704,15 @@ class _DashboardPageState extends State<DashboardPage> {
     return Container(
       width: 32,
       height: 32,
-      decoration: const BoxDecoration(
-        color: Color(0xFF7EC8E3),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
         shape: BoxShape.circle,
       ),
-      child: CustomPaint(painter: _UwuFacePainter()),
+      child: const Icon(
+        Icons.person_rounded,
+        color: Colors.grey,
+        size: 20,
+      ),
     );
   }
 
@@ -664,29 +801,31 @@ class _DashboardPageState extends State<DashboardPage> {
     required Color textDark,
   }) {
     return Container(
-      width: 220,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      width: 180,
       decoration: BoxDecoration(
-        color: menuPink,
-        borderRadius: BorderRadius.circular(22),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildProfileMenuRow(
-            icon: Icons.account_circle_outlined,
-            label: 'Lihat Profil',
+          _buildProfessionalMenuItem(
+            icon: Icons.edit_rounded,
+            label: 'Edit Profil',
             textDark: textDark,
+            isTop: true,
             onTap: () {
               setState(() => _showProfileMenu = false);
-              Navigator.pushNamed(context, '/profile');
+              _showEditProfileSheet();
             },
           ),
-          const SizedBox(height: 12),
-          _buildProfileMenuRow(
+          Divider(height: 1, thickness: 1, color: Colors.grey.shade100),
+          _buildProfessionalMenuItem(
             icon: Icons.logout_rounded,
             label: 'Keluar',
-            textDark: textDark,
+            textDark: Colors.redAccent,
+            isBottom: true,
             onTap: () {
               setState(() => _showProfileMenu = false);
               _handleLogout();
@@ -697,42 +836,37 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildProfileMenuRow({
+  Widget _buildProfessionalMenuItem({
     required IconData icon,
     required String label,
     required Color textDark,
+    bool isTop = false,
+    bool isBottom = false,
     required VoidCallback onTap,
   }) {
-    return Row(
-      children: [
-        Icon(icon, color: textDark, size: 26),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            elevation: 2,
-            shadowColor: Colors.black.withValues(alpha: 0.08),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Center(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: textDark,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.vertical(
+        top: isTop ? const Radius.circular(16) : Radius.zero,
+        bottom: isBottom ? const Radius.circular(16) : Radius.zero,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: textDark, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                color: textDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -921,6 +1055,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _showGuestWarning() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text(
@@ -932,47 +1067,12 @@ class _DashboardPageState extends State<DashboardPage> {
         action: SnackBarAction(
           label: 'Daftar',
           textColor: Colors.white,
-          onPressed: () => Navigator.pushNamed(context, '/register'),
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            Navigator.pushNamed(context, '/register');
+          },
         ),
       ),
     );
   }
-}
-
-class _UwuFacePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF2D2132)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
-      ..strokeCap = StrokeCap.round;
-
-    final w = size.width;
-    final h = size.height;
-
-    canvas.drawArc(
-      Rect.fromCenter(
-          center: Offset(w * 0.32, h * 0.38),
-          width: w * 0.18,
-          height: h * 0.1),
-      0, 3.14, false, paint,
-    );
-    canvas.drawArc(
-      Rect.fromCenter(
-          center: Offset(w * 0.68, h * 0.38),
-          width: w * 0.18,
-          height: h * 0.1),
-      0, 3.14, false, paint,
-    );
-
-    final mouthPath = Path();
-    mouthPath.moveTo(w * 0.28, h * 0.62);
-    mouthPath.quadraticBezierTo(w * 0.4, h * 0.72, w * 0.5, h * 0.58);
-    mouthPath.quadraticBezierTo(w * 0.6, h * 0.44, w * 0.72, h * 0.62);
-    canvas.drawPath(mouthPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

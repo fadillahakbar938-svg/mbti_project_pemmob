@@ -4,7 +4,6 @@ import 'dashboard_page.dart';
 import 'test_intro_page.dart';
 import 'soul_match_page.dart';
 import 'cards_page.dart';
-import 'profile_page.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -48,10 +47,6 @@ class CustomBottomNavbar extends StatelessWidget {
               page = const CardsPage();
               break;
 
-            case 4:
-              page = const ProfilePage();
-              break;
-
             default:
               page = const DashboardPage();
           }
@@ -62,22 +57,18 @@ class CustomBottomNavbar extends StatelessWidget {
           );
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Beranda'),
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics_outlined),
-            label: 'Test',
+            label: 'Tes',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border_rounded),
-            label: 'Match',
+            label: 'Cocok',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.style_outlined),
-            label: 'Cards',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: 'Profile',
+            label: 'Kartu',
           ),
         ],
       ),

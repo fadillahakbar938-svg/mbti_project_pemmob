@@ -152,6 +152,28 @@ class _ResultPageState extends State<ResultPage> {
     };
   }
 
+  String _getMbtiTitle(String mbti) {
+    switch (mbti) {
+      case 'INTJ': return 'The Architect';
+      case 'INTP': return 'The Logician';
+      case 'ENTJ': return 'The Commander';
+      case 'ENTP': return 'The Debater';
+      case 'INFJ': return 'The Advocate';
+      case 'INFP': return 'The Mediator';
+      case 'ENFJ': return 'The Protagonist';
+      case 'ENFP': return 'The Campaigner';
+      case 'ISTJ': return 'The Logistician';
+      case 'ISFJ': return 'The Defender';
+      case 'ESTJ': return 'The Executive';
+      case 'ESFJ': return 'The Consul';
+      case 'ISTP': return 'The Virtuoso';
+      case 'ISFP': return 'The Adventurer';
+      case 'ESTP': return 'The Entrepreneur';
+      case 'ESFP': return 'The Entertainer';
+      default: return 'The Specialist';
+    }
+  }
+
   MbtiProfile _getMbtiProfile(String mbti) {
     if (_profiles.containsKey(mbti)) {
       return _profiles[mbti]!;
@@ -159,7 +181,7 @@ class _ResultPageState extends State<ResultPage> {
     // Dynamic generation fallback for missing types
     return MbtiProfile(
       type: mbti,
-      title: 'The Specialist',
+      title: _getMbtiTitle(mbti),
       emoji: '🌟',
       sticker: '✨',
       description: 'A unique and insightful profile driven by values, dedication, and clear principles.',

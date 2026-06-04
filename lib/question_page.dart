@@ -113,31 +113,31 @@ void previousQuestion() {
   final List<Map<String, dynamic>> scores = [
   {
     "num": "1",
-    "label": "Strongly\nDisagree"
+    "label": "Sangat\nTidak Setuju"
   },
   {
     "num": "2",
-    "label": "Disagree"
+    "label": "Tidak\nSetuju"
   },
   {
     "num": "3",
-    "label": "Slightly\nDisagree"
+    "label": "Sedikit\nTidak Setuju"
   },
   {
     "num": "4",
-    "label": "Neutral"
+    "label": "Netral"
   },
   {
     "num": "5",
-    "label": "Slightly\nAgree"
+    "label": "Sedikit\nSetuju"
   },
   {
     "num": "6",
-    "label": "Agree"
+    "label": "Setuju"
   },
   {
     "num": "7",
-    "label": "Strongly\nAgree"
+    "label": "Sangat\nSetuju"
   },
 ];
 
@@ -540,7 +540,7 @@ void showQuestionList() {
                         ),
 
                         child: const Text(
-                          "Skip",
+                          "Lewati",
                           style: TextStyle(
                             color: Color(0xffA162C5),
                             fontWeight: FontWeight.bold,

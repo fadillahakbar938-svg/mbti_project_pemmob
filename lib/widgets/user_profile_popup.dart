@@ -106,10 +106,8 @@ class _UserProfilePopupState extends State<UserProfilePopup>
         mbtiRaw.isNotEmpty &&
         mbtiRaw.toUpperCase() != 'NULL';
     final mbti = hasValidMbti ? mbtiRaw!.toUpperCase() : null;
-    final profilePic = widget.user['profile_picture'] as String?;
-    final hasImage = profilePic != null &&
-        profilePic.isNotEmpty &&
-        profilePic != 'default.png';
+    final profilePic = widget.user['avatar_emoji'] as String?;
+    final hasImage = profilePic != null && profilePic.isNotEmpty;
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -205,10 +203,11 @@ class _UserProfilePopupState extends State<UserProfilePopup>
           ),
           clipBehavior: Clip.antiAlias,
           child: hasImage
-              ? Image.network(
-                  profilePic!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _avatarFallback(),
+              ? Center(
+                  child: Text(
+                    profilePic!,
+                    style: const TextStyle(fontSize: 40),
+                  ),
                 )
               : _avatarFallback(),
         ),

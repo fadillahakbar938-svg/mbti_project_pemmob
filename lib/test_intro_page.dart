@@ -107,7 +107,7 @@ class TestIntroPage extends StatelessWidget {
 
         /// TITLE
         const Text(
-          "MBTI Test",
+          "Tes MBTI",
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w900,
@@ -117,7 +117,7 @@ class TestIntroPage extends StatelessWidget {
         const SizedBox(height: 4),
 
         const Text(
-          "Discover your personality type",
+          "Temukan tipe kepribadianmu",
           style: TextStyle(
             color: Colors.grey,
             fontSize: 14,
@@ -161,7 +161,7 @@ class TestIntroPage extends StatelessWidget {
               const SizedBox(height: 16),
 
               const Text(
-                "Find Your Personality Type",
+                "Temukan Tipe Kepribadianmu",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
@@ -172,7 +172,7 @@ class TestIntroPage extends StatelessWidget {
               const SizedBox(height: 8),
 
               const Text(
-                "80 Questions • ~5 Minutes",
+                "80 Pertanyaan • ~5 Menit",
                 style: TextStyle(
                   color: textMuted,
                   fontWeight: FontWeight.w600,
@@ -189,14 +189,14 @@ class TestIntroPage extends StatelessWidget {
 
                   _buildInfoChip(
                     Icons.quiz_outlined,
-                    "80 Questions",
+                    "80 Pertanyaan",
                   ),
 
                   const SizedBox(width: 10),
 
                   _buildInfoChip(
                     Icons.timer_outlined,
-                    "~5 Minutes",
+                    "~5 Menit",
                   ),
                 ],
               ),
@@ -208,7 +208,7 @@ class TestIntroPage extends StatelessWidget {
 
         /// SECTION TITLE
         const Text(
-          "4 Dimensions Measured",
+          "4 Dimensi Penilaian",
           style: TextStyle(
             color: textDark,
             fontSize: 18,
@@ -225,7 +225,7 @@ class TestIntroPage extends StatelessWidget {
             Expanded(
               child: _buildDimensionCard(
                 Icons.bolt_rounded,
-                "Energy",
+                "Energi",
                 "E vs I",
                 purpleLight,
               ),
@@ -236,7 +236,7 @@ class TestIntroPage extends StatelessWidget {
             Expanded(
               child: _buildDimensionCard(
                 Icons.visibility_outlined,
-                "Information",
+                "Informasi",
                 "N vs S",
                 blueLight,
               ),
@@ -253,7 +253,7 @@ class TestIntroPage extends StatelessWidget {
             Expanded(
               child: _buildDimensionCard(
                 Icons.balance_rounded,
-                "Decision",
+                "Keputusan",
                 "T vs F",
                 const Color(0xFFFDF0D7),
               ),
@@ -264,7 +264,7 @@ class TestIntroPage extends StatelessWidget {
             Expanded(
               child: _buildDimensionCard(
                 Icons.calendar_month_outlined,
-                "Structure",
+                "Struktur",
                 "J vs P",
                 pinkLight,
               ),
@@ -299,7 +299,7 @@ class TestIntroPage extends StatelessWidget {
             children: [
 
               Text(
-                "Before You Start",
+                "Sebelum Anda Memulai",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -314,7 +314,7 @@ class TestIntroPage extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Answer honestly and naturally",
+                      "Jawablah dengan jujur dan apa adanya",
                     ),
                   ),
                 ],
@@ -328,7 +328,7 @@ class TestIntroPage extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "There are no right or wrong answers",
+                      "Tidak ada jawaban benar atau salah",
                     ),
                   ),
                 ],
@@ -342,7 +342,7 @@ class TestIntroPage extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Choose the option that feels most like you",
+                      "Pilih opsi yang paling menggambarkan dirimu",
                     ),
                   ),
                 ],
@@ -362,6 +362,7 @@ class TestIntroPage extends StatelessWidget {
             onPressed: () {
               final isGuest = SupabaseService.instance.currentUser == null;
               if (isGuest) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text(
@@ -373,8 +374,10 @@ class TestIntroPage extends StatelessWidget {
                     action: SnackBarAction(
                       label: 'Daftar',
                       textColor: Colors.white,
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/register'),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        Navigator.pushNamed(context, '/register');
+                      },
                     ),
                   ),
                 );
@@ -399,7 +402,7 @@ class TestIntroPage extends StatelessWidget {
             ),
 
             child: const Text(
-              "Start Test",
+              "Mulai Tes",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,

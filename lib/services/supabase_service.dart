@@ -72,7 +72,7 @@ class SupabaseService {
         'username': username,
         'email': email, 
         // 'mbti_type': null,
-        // 'profile_picture': 'default.png',
+        // 'avatar_emoji': 'default.png',
       });
 
       print("STEP 3");
@@ -121,7 +121,11 @@ class SupabaseService {
     await _client.auth.signOut();
   }
 
-  /// Profil dari tabel `users` (username, email, mbti_type, profile_picture, created_at, dll.).
+  Future<void> updateUserProfile(String userId, Map<String, dynamic> data) async {
+    await _client.from('users').update(data).eq('id', userId);
+  }
+
+  /// Sinkronkan profil user dari metadata auth ke tabel `users` (username, email, mbti_type, avatar_emoji, created_at, dll.).
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     
     final response = await _client
@@ -338,14 +342,14 @@ class SupabaseService {
       if (excludeUserId != null && excludeUserId.isNotEmpty) {
         response = await _client
             .from('users')
-            .select('id, username, email, mbti_type, profile_picture')
+            .select('id, username, email, mbti_type, avatar_emoji')
             .or(orFilter)
             .neq('id', excludeUserId)
             .limit(limit);
       } else {
         response = await _client
             .from('users')
-            .select('id, username, email, mbti_type, profile_picture')
+            .select('id, username, email, mbti_type, avatar_emoji')
             .or(orFilter)
             .limit(limit);
       }
@@ -501,8 +505,8 @@ Future<List<Map<String, dynamic>>> getFriends(String userId) async {
       .from('friend_requests')
       .select('''
         id, status, created_at,
-        sender:users!sender_id(id, username, mbti_type, profile_picture),
-        receiver:users!receiver_id(id, username, mbti_type, profile_picture)
+        sender:users!sender_id(id, username, mbti_type, avatar_emoji),
+        receiver:users!receiver_id(id, username, mbti_type, avatar_emoji)
       ''')
       .or('sender_id.eq.$userId,receiver_id.eq.$userId')
       .eq('status', 'accepted');
@@ -516,7 +520,7 @@ Future<List<Map<String, dynamic>>> getMatches(String userId) async {
       .from('match_history')
       .select('''
         id, created_at, user_mbti, friend_mbti,
-        friend:users!friend_id(id, username, mbti_type, profile_picture)
+        friend:users!friend_id(id, username, mbti_type, avatar_emoji)
       ''')
       .eq('user_id', userId)
       .order('created_at', ascending: false);
@@ -552,8 +556,8 @@ Future<Map<String, dynamic>?> getMatchDetail(int historyId) async {
       .from('match_history')
       .select('''
         id, created_at, user_mbti, friend_mbti, user_id, friend_id,
-        user:users!user_id(id, username, profile_picture),
-        friend:users!friend_id(id, username, profile_picture)
+        user:users!user_id(id, username, avatar_emoji),
+        friend:users!friend_id(id, username, avatar_emoji)
       ''')
       .eq('id', historyId)
       .maybeSingle();
@@ -588,7 +592,7 @@ Future<List<Map<String, dynamic>>> getIncomingFriendRequests(
       .from('friend_requests')
       .select('''
         id, status, created_at,
-        sender:users!sender_id(id, username, profile_picture)
+        sender:users!sender_id(id, username, avatar_emoji)
       ''')
       .eq('receiver_id', userId)
       .eq('status', 'pending')
@@ -783,7 +787,7 @@ Future<void> rejectFriendRequest(int requestId) async {
         .from('match_requests')
         .select('''
           id, status, created_at,
-          sender:users!sender_id(id, username, mbti_type, profile_picture)
+          sender:users!sender_id(id, username, mbti_type, avatar_emoji)
         ''')
         .eq('receiver_id', userId)
         .eq('status', 'pending')
@@ -871,6 +875,11 @@ Future<void> rejectFriendRequest(int requestId) async {
         .from('match_requests')
         .update({'status': 'rejected'})
         .eq('id', requestId);
+  }
+
+  /// Hapus notifikasi
+  Future<void> deleteNotification(int notificationId) async {
+    await _client.from('notifications').delete().eq('id', notificationId);
   }
 
   /// Hapus riwayat match antara dua user

@@ -164,7 +164,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Your most compatible types',
+                        'Tipe yang paling cocok denganmu',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -244,7 +244,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                 Icon(Icons.add_rounded, color: Colors.white, size: 20),
                 SizedBox(width: 6),
                 Text(
-                  'Add friends',
+                  'Tambah Teman',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -346,7 +346,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     child: const Text(
-                      'MY TYPE',
+                      'TIPE SAYA',
                       style: TextStyle(
                         color: _primaryColor,
                         fontSize: 10,
@@ -403,7 +403,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
             child:
                 Icon(Icons.search_rounded, color: Colors.grey[600], size: 24),
           ),
-          hintText: 'Search...',
+          hintText: 'Cari...',
           hintStyle: TextStyle(
             color: Colors.grey[500],
             fontSize: 15,
@@ -429,13 +429,13 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildTabPill(
-              title: 'Friends',
+              title: 'Teman',
               count: _friends.length,
               isSelected: _activeTabSegment == 0,
               onTap: () => setState(() => _activeTabSegment = 0),
             ),
             _buildTabPill(
-              title: 'Matched',
+              title: 'Match',
               count: _matches.length,
               isSelected: _activeTabSegment == 1,
               onTap: () => setState(() => _activeTabSegment = 1),
@@ -734,16 +734,16 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           final onCooldown = _isMatchOnCooldown(friendId);
           if (onCooldown) {
             final remaining = _matchCooldownRemaining(friendId);
-            buttonText = 'Tunggu ${remaining}s';
+            buttonText = 'Tunggu ${remaining}d';
             buttonColor = Colors.grey;
             onPressed = null;
           } else {
-            buttonText = 'Cancel';
+            buttonText = 'Batal';
             buttonColor = Colors.redAccent;
             onPressed = () => _handleMatchTap(friendId, 'cancel', reqId);
           }
         } else {
-          buttonText = 'Accept';
+          buttonText = 'Terima';
           buttonColor = Colors.blue;
           onPressed = () => _handleMatchTap(friendId, 'incoming', reqId);
         }
@@ -1071,4 +1071,4 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     );
   }
 }
-
+
