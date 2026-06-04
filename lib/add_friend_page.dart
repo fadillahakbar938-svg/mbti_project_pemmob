@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'custom_bottom_navbar.dart';
 import 'services/supabase_service.dart';
+import 'dart:async';
 
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key});
@@ -10,6 +11,7 @@ class AddFriendPage extends StatefulWidget {
 }
 
 class _AddFriendPageState extends State<AddFriendPage> {
+
   static const Color _primaryColor = Color(0xFF8E59B3);
 
   final TextEditingController _searchController = TextEditingController();
@@ -91,40 +93,81 @@ class _AddFriendPageState extends State<AddFriendPage> {
     }
   }
 
-  Future<void> _toggleFriendRequest(String targetUserId) async {
-    final currentId = _currentUserId;
-    if (currentId == null) return;
+  final Map<String, DateTime> _requestSentAt = {};
 
-    final currentStatus = _statusCache[targetUserId] ?? 'none';
-
-    // Optimistic update
-    setState(() {
-      _statusCache[targetUserId] =
-          currentStatus == 'none' ? 'pending' : 'none';
-    });
-
-    try {
-      if (currentStatus == 'none') {
-        await SupabaseService.instance.sendFriendRequest(
-          senderId: currentId,
-          receiverId: targetUserId,
-        );
-      } else if (currentStatus == 'pending') {
-        await SupabaseService.instance.cancelFriendRequest(
-          senderId: currentId,
-          receiverId: targetUserId,
-        );
-      }
-    } catch (_) {
-      // Rollback jika gagal
-      if (!mounted) return;
-      setState(() => _statusCache[targetUserId] = currentStatus);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal, coba lagi.')),
-      );
-    }
+  /// Cek apakah masih dalam cooldown 2 menit
+  bool _isOnCooldown(String userId) {
+    final sentAt = _requestSentAt[userId];
+    if (sentAt == null) return false;
+    return DateTime.now().difference(sentAt).inSeconds < 120;
   }
 
+  /// Sisa waktu cooldown dalam detik
+  int _cooldownRemaining(String userId) {
+    final sentAt = _requestSentAt[userId];
+    if (sentAt == null) return 0;
+    final elapsed = DateTime.now().difference(sentAt).inSeconds;
+    return (120 - elapsed).clamp(0, 120);
+  }
+
+  Future<void> _toggleFriendRequest(String targetUserId) async {
+  final currentId = _currentUserId;
+  if (currentId == null) return;
+
+  final currentStatus = _statusCache[targetUserId] ?? 'none';
+
+  // Cek cooldown jika mau kirim request baru
+  if (currentStatus == 'none' && _isOnCooldown(targetUserId)) {
+    final sisa = _cooldownRemaining(targetUserId);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Harap tunggu $sisa detik sebelum mengirim ulang.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.orange,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    return;
+  }
+
+  // Optimistic update
+  setState(() {
+    _statusCache[targetUserId] =
+        currentStatus == 'none' ? 'pending' : 'none';
+    if (currentStatus == 'none') {
+      _requestSentAt[targetUserId] = DateTime.now();
+    }
+  });
+
+  try {
+    if (currentStatus == 'none') {
+      await SupabaseService.instance.sendFriendRequest(
+        senderId: currentId,
+        receiverId: targetUserId,
+      );
+    } else if (currentStatus == 'pending') {
+      await SupabaseService.instance.cancelFriendRequest(
+        senderId: currentId,
+        receiverId: targetUserId,
+      );
+      // Reset cooldown saat dibatalkan
+      setState(() => _requestSentAt.remove(targetUserId));
+    }
+  } catch (_) {
+    if (!mounted) return;
+    setState(() {
+      _statusCache[targetUserId] = currentStatus;
+      _requestSentAt.remove(targetUserId);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gagal, coba lagi.')),
+    );
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -362,89 +405,126 @@ class _AddFriendPageState extends State<AddFriendPage> {
   }
 
   Widget _buildAddButton(String userId, String username, String status) {
-    final isPending = status == 'pending';
-    final isAccepted = status == 'accepted';
+  final isPending = status == 'pending';
+  final isAccepted = status == 'accepted';
+  final isIncoming = status == 'incoming'; 
+  final onCooldown = isPending && _isOnCooldown(userId);
 
-    // Sudah berteman — tidak bisa add lagi
-    if (isAccepted) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.green[50],
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle_outline,
-                size: 14, color: Colors.green[600]),
-            const SizedBox(width: 4),
-            Text(
-              'Friends',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.green[700],
-              ),
+  if (isAccepted) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle_outline, size: 14, color: Colors.green[600]),
+          const SizedBox(width: 4),
+          Text(
+            'Berteman',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[700],
             ),
-          ],
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 36,
-      child: ElevatedButton(
-        onPressed: () async {
-          await _toggleFriendRequest(userId);
-          if (!mounted) return;
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(
-                  _statusCache[userId] == 'pending'
-                      ? 'Friend request sent to $username! 🚀'
-                      : 'Friend request cancelled.',
-                ),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: _primaryColor,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isPending ? Colors.grey[300] : _primaryColor,
-          foregroundColor:
-              isPending ? Colors.grey[700] : Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isPending ? Icons.hourglass_empty_rounded : Icons.add_rounded,
-              size: 15,
-              color: isPending ? Colors.grey[700] : Colors.white,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              isPending ? 'Pending' : 'Add Friend',
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
+  if (isIncoming) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3E3FC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.notifications_active_rounded, size: 14,
+              color: Color(0xFF8E59B3)),
+          SizedBox(width: 4),
+          Text('Minta diterima',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
+                  color: Color(0xFF8E59B3))),
+        ],
+      ),
+    );
+  }
+
+  return SizedBox(
+    height: 36,
+    child: ElevatedButton(
+      // Disable tombol saat cooldown aktif
+      onPressed: onCooldown
+          ? null
+          : () async {
+              await _toggleFriendRequest(userId);
+              if (!mounted) return;
+              final newStatus = _statusCache[userId];
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      newStatus == 'pending'
+                          ? 'Permintaan pertemanan dikirim ke $username! 🚀'
+                          : 'Permintaan pertemanan dibatalkan.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: _primaryColor,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+            },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: onCooldown
+            ? Colors.grey[200]
+            : isPending
+                ? Colors.grey[300]
+                : _primaryColor,
+        foregroundColor: onCooldown || isPending
+            ? Colors.grey[500]
+            : Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            onCooldown
+                ? Icons.hourglass_top_rounded
+                : isPending
+                    ? Icons.hourglass_empty_rounded
+                    : Icons.add_rounded,
+            size: 15,
+          ),
+          const SizedBox(width: 4),
+          // Tampilkan countdown jika cooldown aktif
+          onCooldown
+              ? _CooldownText(
+                  userId: userId,
+                  requestSentAt: _requestSentAt,
+                )
+              : Text(
+                  isPending ? 'Menunggu' : 'Tambah Teman',
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+        ],
+      ),
+    ),
+  );
+}
   Widget _buildIdleState() {
     return Center(
       child: Padding(
@@ -496,6 +576,59 @@ class _AddFriendPageState extends State<AddFriendPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Widget countdown yang update setiap detik
+class _CooldownText extends StatefulWidget {
+  final String userId;
+  final Map<String, DateTime> requestSentAt;
+
+  const _CooldownText({
+    required this.userId,
+    required this.requestSentAt,
+  });
+
+  @override
+  State<_CooldownText> createState() => _CooldownTextState();
+}
+
+class _CooldownTextState extends State<_CooldownText> {
+  late Timer _timer;
+  int _remaining = 120;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(_updateRemaining);
+    });
+  }
+
+  void _updateRemaining() {
+    final sentAt = widget.requestSentAt[widget.userId];
+    if (sentAt == null) {
+      _remaining = 0;
+      return;
+    }
+    final elapsed = DateTime.now().difference(sentAt).inSeconds;
+    _remaining = (120 - elapsed).clamp(0, 120);
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'Tunggu ${_remaining}d',
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
     );
   }
 }

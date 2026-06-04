@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'services/supabase_service.dart';
 
 
@@ -285,9 +286,9 @@ void previousQuestion() {
   print("HASIL MBTI");
   print(result);
 
-  Navigator.pushNamed(
+  Navigator.pushReplacementNamed(
     context,
-    '/home',
+    '/result',
     arguments: result,
   );
 }
@@ -614,55 +615,32 @@ void showQuestionList() {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(25),
-
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius:
-                        BorderRadius.circular(30),
-
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 5,
-                        offset: Offset(0,4),
+                        offset: Offset(0, 4),
                       )
                     ],
                   ),
-
-                  child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
-
-                    children: [
-
-                      Text(
-                        questions[currentQuestion]["question"],
-
-                        textAlign: TextAlign.center,
-
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          height: 1.7,
-                        ),
+                  child: Center(
+                    child: AutoSizeText(
+                      questions[currentQuestion]["question"],
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        height: 1.7,
                       ),
-
-                      SizedBox(height: 30),
-
-                      Text(
-                        "Rate from 1 (strongly disagree) to 7 (strongly agree)",
-
-                        textAlign: TextAlign.center,
-
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
+                      maxLines: 6,
+                      minFontSize: 16,
+                      maxFontSize: 30,
+                    ),
                   ),
                 ),
               ),
-
               SizedBox(height: 25),
 
               /// SCORE

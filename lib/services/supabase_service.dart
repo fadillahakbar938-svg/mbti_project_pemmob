@@ -428,14 +428,16 @@ Future<void> sendFriendRequest({
   required String senderId,
   required String receiverId,
 }) async {
-  // Cek dulu apakah sudah ada request sebelumnya
+  // Hanya cek satu arah: sender ini ke receiver ini
+  // Tidak cek dua arah agar A bisa request ke B meski B sudah request ke A
   final existing = await _client
       .from('friend_requests')
-      .select()
-      .or('and(sender_id.eq.$senderId,receiver_id.eq.$receiverId),and(sender_id.eq.$receiverId,receiver_id.eq.$senderId)')
+      .select('id')
+      .eq('sender_id', senderId)
+      .eq('receiver_id', receiverId)
       .maybeSingle();
 
-  if (existing != null) return; // Sudah ada, skip
+  if (existing != null) return; // Sudah pernah kirim, skip
 
   await _client.from('friend_requests').insert({
     'sender_id': senderId,
@@ -463,17 +465,31 @@ Future<String> getFriendRequestStatus({
   required String currentUserId,
   required String otherUserId,
 }) async {
-  final response = await _client
+  // Cek request yang kita kirim
+  final sent = await _client
       .from('friend_requests')
       .select('status')
-      .or(
-        'and(sender_id.eq.$currentUserId,receiver_id.eq.$otherUserId),'
-        'and(sender_id.eq.$otherUserId,receiver_id.eq.$currentUserId)',
-      )
+      .eq('sender_id', currentUserId)
+      .eq('receiver_id', otherUserId)
       .maybeSingle();
 
-  if (response == null) return 'none';
-  return response['status'] as String? ?? 'none';
+  if (sent != null) return sent['status'] as String? ?? 'none';
+
+  // Cek request yang masuk dari orang lain
+  final received = await _client
+      .from('friend_requests')
+      .select('status')
+      .eq('sender_id', otherUserId)
+      .eq('receiver_id', currentUserId)
+      .maybeSingle();
+
+  if (received != null) {
+    final status = received['status'] as String? ?? 'none';
+    if (status == 'accepted') return 'accepted';
+    if (status == 'pending') return 'incoming'; // ← tambah status baru ini
+  }
+
+  return 'none';
 }
 
 /// Ambil daftar teman (status = 'accepted')
@@ -503,6 +519,57 @@ Future<List<Map<String, dynamic>>> getMatches(String userId) async {
       .order('compatibility_percentage', ascending: false);
 
   return List<Map<String, dynamic>>.from(response);
+}
+
+/// Ambil semua pending friend requests yang masuk ke user ini
+Future<List<Map<String, dynamic>>> getIncomingFriendRequests(
+  String userId,
+) async {
+  final response = await _client
+      .from('friend_requests')
+      .select('''
+        id, status, created_at,
+        sender:users!friend_requests_sender_id_fkey(id, username, profile_picture)
+      ''')
+      .eq('receiver_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', ascending: false);
+
+  return List<Map<String, dynamic>>.from(response);
+}
+
+/// Terima friend request
+Future<void> acceptFriendRequest(int requestId) async {
+  await _client
+      .from('friend_requests')
+      .update({'status': 'accepted'})
+      .eq('id', requestId);
+}
+
+/// Tolak friend request
+Future<void> rejectFriendRequest(int requestId) async {
+  await _client
+      .from('friend_requests')
+      .update({'status': 'rejected'})
+      .eq('id', requestId);
+}
+
+/// Cek apakah ada pending request yang dikirim user ini ke target
+/// Return: created_at dari request jika ada, null jika tidak ada
+Future<DateTime?> getOutgoingPendingRequestTime({
+  required String senderId,
+  required String receiverId,
+}) async {
+  final response = await _client
+      .from('friend_requests')
+      .select('created_at')
+      .eq('sender_id', senderId)
+      .eq('receiver_id', receiverId)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+  if (response == null) return null;
+  return DateTime.tryParse(response['created_at'].toString());
 }
 }
 
