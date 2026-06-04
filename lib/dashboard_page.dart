@@ -28,6 +28,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int totalMatches = 0;
   int totalCards = 0;
   int _notificationCount = 0;
+  List<Map<String, dynamic>> _recentMatches = [];
 
   @override
   void initState() {
@@ -62,6 +63,8 @@ class _DashboardPageState extends State<DashboardPage> {
         SupabaseService.instance.getTotalCards(user.id),
         SupabaseService.instance.getIncomingFriendRequests(user.id),
         SupabaseService.instance.getIncomingMatchRequests(user.id),
+        SupabaseService.instance.getMatches(user.id),
+        SupabaseService.instance.getNotifications(user.id),
       ]);
 
       if (!mounted) return;
@@ -69,10 +72,14 @@ class _DashboardPageState extends State<DashboardPage> {
         totalTests = results[0] as int;
         totalMatches = results[1] as int;
         totalCards = results[2] as int;
-        
         final incomingFriends = results[3] as List<dynamic>;
         final incomingMatches = results[4] as List<dynamic>;
-        _notificationCount = incomingFriends.length + incomingMatches.length;
+        final matches = results[5] as List<Map<String, dynamic>>;
+        final notifications = results[6] as List<dynamic>;
+        
+        _notificationCount = incomingFriends.length + incomingMatches.length + notifications.length;
+
+        _recentMatches = matches.take(5).toList(); // Ambil 5 saja untuk di dashboard
       });
     } catch (e) {
       debugPrint('Error loading counts: $e');
@@ -223,11 +230,22 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ],
                         const SizedBox(height: 16),
-                        _buildMyTypeCard(
-                          purpleLight: purpleLight,
-                          purpleMain: purpleMain,
-                          textDark: textDark,
-                          textMuted: textMuted,
+                        GestureDetector(
+                          onTap: _isGuest
+                              ? _showGuestWarning
+                              : () {
+                                  if (_mbtiType != null) {
+                                    Navigator.pushNamed(context, '/result');
+                                  } else {
+                                    Navigator.pushNamed(context, '/test_intro');
+                                  }
+                                },
+                          child: _buildMyTypeCard(
+                            purpleLight: purpleLight,
+                            purpleMain: purpleMain,
+                            textDark: textDark,
+                            textMuted: textMuted,
+                          ),
                         ),
                       ],
                     ),
@@ -342,7 +360,17 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: _isGuest ? _showGuestWarning : () {},
+                      onTap: _isGuest ? _showGuestWarning : () {
+                        // Navigate to matches tab in bottom navbar
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation1, animation2) => const SoulMatchPage(),
+                            transitionDuration: Duration.zero,
+                            reverseTransitionDuration: Duration.zero,
+                          ),
+                        );
+                      },
                       child: const Text(
                         'Lihat semua',
                         style: TextStyle(
@@ -357,22 +385,57 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 16),
                 _isGuest
                     ? _buildLockedMatchesPlaceholder()
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: Row(
-                          children: [
-                            _buildSoulMatchCard('🐧', 'INTP', 'Si Pemikir',
-                                0.97, blueLight, blueMain, textDark),
-                            const SizedBox(width: 16),
-                            _buildSoulMatchCard('🐑', 'INFP', 'Si Pemimpi',
-                                0.70, purpleLight, purpleMain, textDark),
-                            const SizedBox(width: 16),
-                            _buildSoulMatchCard('🦊', 'ENFJ', 'Si Protagonis',
-                                0.85, pinkLight, Colors.redAccent, textDark),
-                          ],
-                        ),
-                      ),
+                    : _recentMatches.isEmpty
+                        ? Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Belum ada Match.\nYuk cari Match pertamamu!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: _recentMatches.map((match) {
+                                // Extract data safely
+                                final friendMbti = match['friend_mbti'] as String? ?? 'N/A';
+                                final percentageRaw = match['compatibility_percentage'];
+                                final percentage = (percentageRaw is num) ? percentageRaw.toDouble() / 100 : 0.50;
+                                
+                                // Provide default emojis and descriptions based on MBTI
+                                String emoji = '😊';
+                                String desc = 'Si Teman Baru';
+                                if (friendMbti == 'INTP') { emoji = '🐧'; desc = 'Si Pemikir'; }
+                                else if (friendMbti == 'INFP') { emoji = '🐑'; desc = 'Si Pemimpi'; }
+                                else if (friendMbti == 'ENFJ') { emoji = '🦊'; desc = 'Si Protagonis'; }
+                                else if (friendMbti == 'ESTJ') { emoji = '🦁'; desc = 'Si Eksekutif'; }
+                                else if (friendMbti == 'ISFP') { emoji = '🐼'; desc = 'Si Seniman'; }
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 16),
+                                  child: _buildSoulMatchCard(
+                                    emoji,
+                                    friendMbti,
+                                    desc,
+                                    percentage,
+                                    blueLight,
+                                    blueMain,
+                                    textDark,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                 SizedBox(height: MediaQuery.paddingOf(context).bottom + 72),
               ],
             ),
@@ -522,15 +585,8 @@ class _DashboardPageState extends State<DashboardPage> {
     required Color textDark,
     required Color textMuted,
   }) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ResultPage()),
-        );
-      },
-      child: Container(
-        width: double.infinity,
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: purpleLight,
@@ -600,7 +656,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-    ));
+    );
   }
 
   Widget _buildProfileDropdown({

@@ -36,12 +36,14 @@ class _NotificationPanelState extends State<NotificationPanel> {
       final results = await Future.wait([
         SupabaseService.instance.getIncomingFriendRequests(userId),
         SupabaseService.instance.getIncomingMatchRequests(userId),
+        SupabaseService.instance.getNotifications(userId),
       ]);
 
       final friendRequests = results[0].map<Map<String, dynamic>>((r) => {...r, 'type': 'friend'}).toList();
       final matchRequests = results[1].map<Map<String, dynamic>>((r) => {...r, 'type': 'match'}).toList();
+      final notifications = results[2].map<Map<String, dynamic>>((r) => {...r, 'type': 'notification'}).toList();
 
-      final combined = [...friendRequests, ...matchRequests];
+      final combined = [...friendRequests, ...matchRequests, ...notifications];
       
       // Sort by created_at desc
       combined.sort((a, b) {
@@ -248,7 +250,9 @@ class _NotificationPanelState extends State<NotificationPanel> {
 
     final text = type == 'friend'
         ? '$username ingin berteman dengan anda'
-        : '$username mengajak anda mencocokkan MBTI';
+        : type == 'match'
+            ? '$username mengajak anda mencocokkan MBTI'
+            : request['message'] as String? ?? 'Notifikasi baru';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -271,14 +275,16 @@ class _NotificationPanelState extends State<NotificationPanel> {
             decoration: const BoxDecoration(
                 color: Color(0xFFFCE3EC), shape: BoxShape.circle),
             clipBehavior: Clip.antiAlias,
-            child: hasImage
-                ? Image.network(
-                    profilePic,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const Icon(Icons.person,
-                        size: 22, color: Colors.grey),
-                  )
-                : const Icon(Icons.person, size: 22, color: Colors.grey),
+            child: type == 'notification'
+                ? const Icon(Icons.favorite, size: 22, color: Colors.redAccent)
+                : hasImage
+                    ? Image.network(
+                        profilePic,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const Icon(Icons.person,
+                            size: 22, color: Colors.grey),
+                      )
+                    : const Icon(Icons.person, size: 22, color: Colors.grey),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -300,7 +306,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
               child: CircularProgressIndicator(
                   strokeWidth: 2, color: _primaryColor),
             )
-          else
+          else if (type != 'notification')
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [

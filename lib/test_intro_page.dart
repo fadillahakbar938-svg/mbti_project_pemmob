@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'custom_bottom_navbar.dart';
 import 'yakin_page.dart';
+import 'services/supabase_service.dart';
 
 class TestIntroPage extends StatelessWidget {
   const TestIntroPage({super.key});
@@ -359,6 +360,26 @@ class TestIntroPage extends StatelessWidget {
 
           child: ElevatedButton(
             onPressed: () {
+              final isGuest = SupabaseService.instance.currentUser == null;
+              if (isGuest) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                        'Fitur ini memerlukan akun terdaftar. Yuk daftar dulu! 🔮'),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: const Color(0xFF8E59B3),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    action: SnackBarAction(
+                      label: 'Daftar',
+                      textColor: Colors.white,
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/register'),
+                    ),
+                  ),
+                );
+                return;
+              }
 
               Navigator.push(
                 context,
@@ -366,7 +387,6 @@ class TestIntroPage extends StatelessWidget {
                   builder: (_) => const YakinPage(),
                 ),
               );
-
             },
 
             style: ElevatedButton.styleFrom(

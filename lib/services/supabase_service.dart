@@ -792,6 +792,17 @@ Future<void> rejectFriendRequest(int requestId) async {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// Ambil semua notifikasi untuk user ini
+  Future<List<Map<String, dynamic>>> getNotifications(String userId) async {
+    final response = await _client
+        .from('notifications')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   /// Terima match request dan buat hasil kecocokan di match_results
   Future<void> acceptMatchRequest(int requestId) async {
     // 1. Ambil data request untuk tahu siapa sender dan receiver
@@ -833,6 +844,25 @@ Future<void> rejectFriendRequest(int requestId) async {
       'user_mbti': senderMbti,
       'friend_mbti': receiverMbti,
     });
+
+    final senderName = senderProfile?['username'] as String? ?? 'Seseorang';
+    final receiverName = receiverProfile?['username'] as String? ?? 'Seseorang';
+
+    // 5. Kirim notifikasi ke kedua user
+    await _client.from('notifications').insert([
+      {
+        'user_id': senderId,
+        'type': 'match_success',
+        'title': 'Match Berhasil!',
+        'message': 'Selamat! Anda dan $receiverName sekarang resmi Match!',
+      },
+      {
+        'user_id': receiverId,
+        'type': 'match_success',
+        'title': 'Match Berhasil!',
+        'message': 'Selamat! Anda dan $senderName sekarang resmi Match!',
+      }
+    ]);
   }
 
   /// Tolak match request

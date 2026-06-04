@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 
 class NotificationPanel extends StatefulWidget {
@@ -14,11 +15,42 @@ class _NotificationPanelState extends State<NotificationPanel> {
   bool _loading = true;
   List<Map<String, dynamic>> _requests = [];
   final Set<int> _processingIds = {};
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
     super.initState();
     _loadRequests();
+    _setupRealtime();
+  }
+
+  void _setupRealtime() {
+    final userId = SupabaseService.instance.currentUser?.id;
+    if (userId == null) return;
+
+    _channel = Supabase.instance.client
+        .channel('public:friend_requests')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'friend_requests',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'receiver_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            // Jika ada perubahan pada tabel, refresh data notifikasi
+            _loadRequests();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _channel?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> _loadRequests() async {
@@ -54,8 +86,15 @@ class _NotificationPanelState extends State<NotificationPanel> {
     print('ERROR: $e'); // Sudah ada tapi pastikan dilihat
     if (!mounted) return;
     setState(() => _loading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error Notif: $e'),
+        duration: const Duration(seconds: 10),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
-} 
+}
 
   Future<void> _accept(int requestId) async {
     if (_processingIds.contains(requestId)) return;
@@ -192,9 +231,10 @@ class _NotificationPanelState extends State<NotificationPanel> {
                     Icon(Icons.notifications_none_rounded,
                         size: 32, color: Colors.grey[400]),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Belum ada notifikasi',
-                      style: TextStyle(
+                    Text(
+                      'Kosong. ID Anda:\n${SupabaseService.instance.currentUser?.id}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2D2132),
                       ),

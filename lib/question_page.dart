@@ -155,12 +155,14 @@ void previousQuestion() {
       });
 
     }else{
+      setState((){});
       if (isAllAnswered) {
         submitTest();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Harap isi semua pertanyaan!")),
+          const SnackBar(content: Text("Masih ada soal yang belum dijawab.")),
         );
+        showQuestionList();
       }
     }
   }
@@ -182,7 +184,9 @@ void previousQuestion() {
     }
 
     // simpan jawaban
-    answers[currentQuestion] = selectedScore;
+    setState(() {
+      answers[currentQuestion] = selectedScore;
+    });
 
     final user =
         SupabaseService

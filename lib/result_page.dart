@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
+import 'soul_match_page.dart';
 
 
 class MbtiProfile {
@@ -209,14 +210,31 @@ class _ResultPageState extends State<ResultPage> {
             child: Column(
               children: [
                 // Top header label
-                const Text(
-                  'YOUR PERSONALITY TYPE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF8E59B3),
-                    letterSpacing: 1.0,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Color(0xFF2D2132)),
+                      onPressed: () {
+                        // Jika bisa kembali, kembali, jika tidak arahkan ke home
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacementNamed(context, '/home');
+                        }
+                      },
+                    ),
+                    const Text(
+                      'YOUR PERSONALITY TYPE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF8E59B3),
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 48), // Balance the row
+                  ],
                 ),
                 const SizedBox(height: 24),
 
@@ -325,32 +343,6 @@ class _ResultPageState extends State<ResultPage> {
                   pills: profile.avoidances,
                   backgroundColor: const Color(0xFFFCE8ED),
                   textColor: const Color(0xFFC92A54),
-                ),
-
-                const SizedBox(height: 36),
-
-                // Primary Bottom Button
-                _buildFindMatchesButton(context),
-
-                const SizedBox(height: 20),
-
-                // Back to home action
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/home',
-                      (route) => false,
-                    );
-                  },
-                  child: const Text(
-                    'Back to Home',
-                    style: TextStyle(
-                      color: Color(0xFF7D6F83),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 32),
@@ -512,16 +504,34 @@ class _ResultPageState extends State<ResultPage> {
     );
   }
 
-  // Score Profile Card containing spectrum bars
+  // Score Profile Card containing linear bars
   Widget _buildScoreProfileCard(Map<String, dynamic> result, MbtiProfile profile) {
-    final eVal = result['e_percent'] as double? ?? 50.0;
-    final iVal = result['i_percent'] as double? ?? 50.0;
-    final sVal = result['s_percent'] as double? ?? 50.0;
-    final nVal = result['n_percent'] as double? ?? 50.0;
-    final fVal = result['f_percent'] as double? ?? 50.0;
-    final tVal = result['t_percent'] as double? ?? 50.0;
-    final pVal = result['p_percent'] as double? ?? 50.0;
-    final jVal = result['j_percent'] as double? ?? 50.0;
+    double getSafeDouble(dynamic val, double defaultVal) {
+      if (val == null) return defaultVal;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? defaultVal;
+      return defaultVal;
+    }
+
+    final eVal = getSafeDouble(result['e_percent'], 50.0);
+    final iVal = getSafeDouble(result['i_percent'], 50.0);
+    final sVal = getSafeDouble(result['s_percent'], 50.0);
+    final nVal = getSafeDouble(result['n_percent'], 50.0);
+    final fVal = getSafeDouble(result['f_percent'], 50.0);
+    final tVal = getSafeDouble(result['t_percent'], 50.0);
+    final pVal = getSafeDouble(result['p_percent'], 50.0);
+    final jVal = getSafeDouble(result['j_percent'], 50.0);
+
+    final Map<String, double> indicators = {
+      if (eVal > 0) 'Ekstrover (E)': eVal / 100,
+      if (iVal > 0) 'Introver (I)': iVal / 100,
+      if (sVal > 0) 'Sensing (S)': sVal / 100,
+      if (nVal > 0) 'Intuisi (N)': nVal / 100,
+      if (tVal > 0) 'Berpikir (T)': tVal / 100,
+      if (fVal > 0) 'Perasa (F)': fVal / 100,
+      if (jVal > 0) 'Menilai (J)': jVal / 100,
+      if (pVal > 0) 'Menerima (P)': pVal / 100,
+    };
 
     return Container(
       width: double.infinity,
@@ -578,121 +588,37 @@ class _ResultPageState extends State<ResultPage> {
           const SizedBox(height: 24),
 
           // Bars
-          _buildSpectrumBar(
-            labelLeft: 'E',
-            labelRight: 'I',
-            percentLeft: eVal,
-            percentRight: iVal,
-            fillPercent: eVal, // Fill represents left percentage (E)
-            fillColor: const Color(0xFF8E59B3), // Purple
-            backgroundColor: const Color(0xFFE8E4F2),
-          ),
-          const SizedBox(height: 18),
-          _buildSpectrumBar(
-            labelLeft: 'N',
-            labelRight: 'S',
-            percentLeft: nVal,
-            percentRight: sVal,
-            fillPercent: nVal, // Fill represents left percentage (N)
-            fillColor: const Color(0xFF2EC4B6), // Teal/green
-            backgroundColor: const Color(0xFFE5F7F6),
-          ),
-          const SizedBox(height: 18),
-          _buildSpectrumBar(
-            labelLeft: 'F',
-            labelRight: 'T',
-            percentLeft: fVal,
-            percentRight: tVal,
-            fillPercent: fVal, // Fill represents left percentage (F)
-            fillColor: const Color(0xFFE64980), // Magenta/pink
-            backgroundColor: const Color(0xFFFFF0F6),
-          ),
-          const SizedBox(height: 18),
-          _buildSpectrumBar(
-            labelLeft: 'P',
-            labelRight: 'J',
-            percentLeft: pVal,
-            percentRight: jVal,
-            fillPercent: pVal, // Fill represents left percentage (P)
-            fillColor: const Color(0xFFD9480F), // Orange
-            backgroundColor: const Color(0xFFFFF4E6),
-          ),
+          for (final entry in indicators.entries) ...[
+            _buildIndicatorRow(entry.key, entry.value),
+            const SizedBox(height: 8),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSpectrumBar({
-    required String labelLeft,
-    required String labelRight,
-    required double percentLeft,
-    required double percentRight,
-    required double fillPercent,
-    required Color fillColor,
-    required Color backgroundColor,
-  }) {
-    final bool isLeftWinner = percentLeft >= percentRight;
-
+  Widget _buildIndicatorRow(String label, double value) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Percent text indicators
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Text(
-                  labelLeft,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: isLeftWinner ? FontWeight.w900 : FontWeight.w600,
-                    color: isLeftWinner ? fillColor : Colors.grey[400],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${percentLeft.toInt()}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isLeftWinner ? FontWeight.bold : FontWeight.w500,
-                    color: isLeftWinner ? Colors.grey[700] : Colors.grey[400],
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Text(
-                  '${percentRight.toInt()}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: !isLeftWinner ? FontWeight.bold : FontWeight.w500,
-                    color: !isLeftWinner ? Colors.grey[700] : Colors.grey[400],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  labelRight,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: !isLeftWinner ? FontWeight.w900 : FontWeight.w600,
-                    color: !isLeftWinner ? fillColor : Colors.grey[400],
-                  ),
-                ),
-              ],
+            Text(label, style: const TextStyle(fontSize: 13)),
+            Text(
+              '${(value * 100).round()}%',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ],
         ),
         const SizedBox(height: 6),
-
-        // Visual spectrum indicator bar
         ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           child: LinearProgressIndicator(
-            value: fillPercent / 100,
-            minHeight: 12,
-            backgroundColor: backgroundColor,
-            valueColor: AlwaysStoppedAnimation<Color>(fillColor),
+            value: value,
+            minHeight: 8,
+            color: const Color(0xFF8E59B3),
+            backgroundColor: Colors.grey[200],
           ),
         ),
       ],
@@ -860,11 +786,9 @@ class _ResultPageState extends State<ResultPage> {
       ),
       child: ElevatedButton(
         onPressed: () {
-          // Navigate to Match Page flow, resetting stack
-          Navigator.pushNamedAndRemoveUntil(
+          Navigator.push(
             context,
-            '/home', // go back to dashboard
-            (route) => false,
+            MaterialPageRoute(builder: (context) => const SoulMatchPage()),
           );
         },
         style: ElevatedButton.styleFrom(
