@@ -6,9 +6,10 @@ import 'widgets/detective_sheep_logo.dart';
 import 'landing_page.dart';
 import 'login_page.dart';
 import 'register_page.dart';
-import 'dashboard_page.dart'; // Memastikan dashboard_page sudah terimport
+import 'dashboard_page.dart'; 
 import 'cards_page.dart';
 import 'profile_page.dart';
+import 'result_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const DashboardPage(),
         '/cards': (context) => const CardsPage(),
         '/profile': (context) => const ProfilePage(),
+        '/result': (context) => const ResultPage(),
       },
     );
   }

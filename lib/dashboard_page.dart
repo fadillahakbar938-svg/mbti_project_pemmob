@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import 'custom_bottom_navbar.dart';
-import 'question_page.dart';
+// import 'question_page.dart';
 import 'widgets/notification_sheet.dart';
 import '../services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
 import 'soul_match_page.dart';
+import 'yakin_page.dart';
 
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
-
+  
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
@@ -258,7 +258,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const QuestionPage(),
+                                  builder: (_) => const YakinPage(),
                                 ),
                               );
                             },

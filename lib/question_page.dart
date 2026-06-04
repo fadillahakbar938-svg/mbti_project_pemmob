@@ -285,9 +285,9 @@ void previousQuestion() {
   print("HASIL MBTI");
   print(result);
 
-  Navigator.pushNamed(
+  Navigator.pushReplacementNamed(
     context,
-    '/home',
+    '/result',
     arguments: result,
   );
 }

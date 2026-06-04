@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'question_page.dart';
+
 import 'custom_bottom_navbar.dart';
+import 'yakin_page.dart';
 
 class TestIntroPage extends StatelessWidget {
   const TestIntroPage({super.key});
@@ -362,8 +363,7 @@ class TestIntroPage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const QuestionPage(),
+                  builder: (_) => const YakinPage(),
                 ),
               );
 
