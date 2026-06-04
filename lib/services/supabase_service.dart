@@ -327,21 +327,38 @@ class SupabaseService {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return [];
 
-    final escaped = trimmed.replaceAll(',', '');
-    final pattern = '%$escaped%';
+    final pattern = '%$trimmed%';
+    final orFilter = 'username.ilike.$pattern,email.ilike.$pattern';
 
-    var request = _client
-        .from('users')
-        .select('id, username, email, mbti_type, profile_picture');
+    print('DEBUG searchUsers: query=$trimmed, pattern=$pattern, exclude=$excludeUserId');
 
-    if (excludeUserId != null && excludeUserId.isNotEmpty) {
-      request = request.neq('id', excludeUserId);
+    try {
+      List<Map<String, dynamic>> response;
+
+      if (excludeUserId != null && excludeUserId.isNotEmpty) {
+        response = await _client
+            .from('users')
+            .select('id, username, email, mbti_type, profile_picture')
+            .or(orFilter)
+            .neq('id', excludeUserId)
+            .limit(limit);
+      } else {
+        response = await _client
+            .from('users')
+            .select('id, username, email, mbti_type, profile_picture')
+            .or(orFilter)
+            .limit(limit);
+      }
+
+      print('DEBUG searchUsers result count: ${response.length}');
+      print('DEBUG searchUsers results: $response');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e, stack) {
+      print('DEBUG searchUsers ERROR: $e');
+      print('DEBUG searchUsers STACK: $stack');
+      return [];
     }
-
-    final response = await request
-        .or('username.ilike.$pattern,email.ilike.$pattern,id.ilike.$pattern')
-        .limit(limit);
-    return List<Map<String, dynamic>>.from(response);
   }
 
   Future<void> saveResult({
@@ -404,6 +421,88 @@ Future<Map<String,dynamic>?> getMbtiProfile(
           .maybeSingle();
 
   return response;
+}
+
+/// Kirim friend request
+Future<void> sendFriendRequest({
+  required String senderId,
+  required String receiverId,
+}) async {
+  // Cek dulu apakah sudah ada request sebelumnya
+  final existing = await _client
+      .from('friend_requests')
+      .select()
+      .or('and(sender_id.eq.$senderId,receiver_id.eq.$receiverId),and(sender_id.eq.$receiverId,receiver_id.eq.$senderId)')
+      .maybeSingle();
+
+  if (existing != null) return; // Sudah ada, skip
+
+  await _client.from('friend_requests').insert({
+    'sender_id': senderId,
+    'receiver_id': receiverId,
+    'status': 'pending',
+  });
+}
+
+/// Batalkan / hapus friend request
+Future<void> cancelFriendRequest({
+  required String senderId,
+  required String receiverId,
+}) async {
+  await _client
+      .from('friend_requests')
+      .delete()
+      .eq('sender_id', senderId)
+      .eq('receiver_id', receiverId)
+      .eq('status', 'pending');
+}
+
+/// Cek status friend request antara dua user
+/// Return: 'none' | 'pending' | 'accepted' | 'rejected'
+Future<String> getFriendRequestStatus({
+  required String currentUserId,
+  required String otherUserId,
+}) async {
+  final response = await _client
+      .from('friend_requests')
+      .select('status')
+      .or(
+        'and(sender_id.eq.$currentUserId,receiver_id.eq.$otherUserId),'
+        'and(sender_id.eq.$otherUserId,receiver_id.eq.$currentUserId)',
+      )
+      .maybeSingle();
+
+  if (response == null) return 'none';
+  return response['status'] as String? ?? 'none';
+}
+
+/// Ambil daftar teman (status = 'accepted')
+Future<List<Map<String, dynamic>>> getFriends(String userId) async {
+  final response = await _client
+      .from('friend_requests')
+      .select('''
+        id, status, created_at,
+        sender:users!friend_requests_sender_id_fkey(id, username, mbti_type, profile_picture),
+        receiver:users!friend_requests_receiver_id_fkey(id, username, mbti_type, profile_picture)
+      ''')
+      .or('sender_id.eq.$userId,receiver_id.eq.$userId')
+      .eq('status', 'accepted');
+
+  return List<Map<String, dynamic>>.from(response);
+}
+
+/// Ambil daftar match (dari match_results)
+Future<List<Map<String, dynamic>>> getMatches(String userId) async {
+  final response = await _client
+      .from('match_results')
+      .select('''
+        id, compatibility_percentage, summary, created_at,
+        friend:users!match_results_friend_id_fkey(id, username, mbti_type, profile_picture)
+      ''')
+      .eq('user_id', userId)
+      .order('compatibility_percentage', ascending: false);
+
+  return List<Map<String, dynamic>>.from(response);
 }
 }
 
