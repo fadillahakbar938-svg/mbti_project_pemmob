@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'package:mbti_project_pemmob/services/supabase_service.dart';
 import 'package:mbti_project_pemmob/widgets/mbti_avatar.dart';
 
