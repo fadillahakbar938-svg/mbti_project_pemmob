@@ -141,7 +141,7 @@ class _LandingPageState extends State<LandingPage>
                         child: Column(
                           children: [
                             const Text(
-                              'MBTI TEST',
+                              'MBTI MATCH',
                               style: TextStyle(
                                 color: textColor,
                                 fontSize: 36,

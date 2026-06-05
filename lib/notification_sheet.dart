@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
+import 'widgets/mbti_avatar.dart';
 
 class NotificationPanel extends StatefulWidget {
   const NotificationPanel({super.key});
@@ -29,7 +30,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
     if (userId == null) return;
 
     _channel = Supabase.instance.client
-        .channel('public:friend_requests')
+        .channel('public:friend_requests_sheet')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -273,10 +274,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
     final requestId = request['id'] as int;
     final sender = request['sender'] as Map<String, dynamic>?;
     final username = sender?['username'] as String? ?? 'Pengguna';
-    final profilePic = sender?['profile_picture'] as String?;
-    final hasImage = profilePic != null &&
-        profilePic.isNotEmpty &&
-        profilePic != 'default.png';
+    final avatarEmoji = sender?['avatar_emoji'] as String?;
     final isProcessing = _processingIds.contains(requestId);
 
     return Container(
@@ -295,25 +293,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
       child: Row(
         children: [
           // Avatar
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFCE3EC),
-              shape: BoxShape.circle,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: hasImage
-                ? Image.network(
-                    profilePic,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                        Icons.person,
-                        size: 22,
-                        color: Colors.grey),
-                  )
-                : const Icon(Icons.person, size: 22, color: Colors.grey),
-          ),
+          MbtiAvatar(mbtiCode: avatarEmoji, size: 44),
           const SizedBox(width: 12),
 
           // Teks

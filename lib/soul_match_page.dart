@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mbti_project_pemmob/widgets/mbti_avatar.dart';
 import 'custom_bottom_navbar.dart';
 import 'add_friend_page.dart';
 import 'services/supabase_service.dart';
@@ -23,6 +24,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
   // MY TYPE data
   bool _loadingMyType = true;
   String _myMbti = 'UNKNOWN';
+  String? _myAvatarEmoji;
   String _myNickname = 'Personality Type';
 
   // Friends & Matches data
@@ -77,6 +79,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
       setState(() {
         _myMbti = mbti ?? 'UNKNOWN';
         _myNickname = nickname;
+        _myAvatarEmoji = profile?['avatar_emoji'] as String?;
         _loadingMyType = false;
       });
     } catch (_) {
@@ -317,19 +320,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                       offset: Offset(0, 2)),
                 ],
               ),
-              child: ClipOval(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Image.network(
-                    'https://api.dicebear.com/7.x/adventurer/png?seed=$_myMbti',
-                    errorBuilder: (_, _, _) => const Icon(
-                      Icons.face_retouching_natural_rounded,
-                      color: _primaryColor,
-                      size: 40,
-                    ),
-                  ),
-                ),
-              ),
+              child: MbtiAvatar(mbtiCode: _myAvatarEmoji, size: 74),
             ),
             const SizedBox(width: 20),
 
@@ -699,10 +690,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     final hasValidMbti = mbtiRaw != null &&
         mbtiRaw.isNotEmpty &&
         mbtiRaw.toUpperCase() != 'NULL';
-    final profilePic = user['profile_picture'] as String?;
-    final hasImage = profilePic != null &&
-        profilePic.isNotEmpty &&
-        profilePic != 'default.png';
+    final avatarEmoji = user['avatar_emoji'] as String?;
 
     final userId = SupabaseService.instance.currentUser?.id ?? '';
     final friendId = user['id'] as String;
@@ -760,7 +748,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
               friendId: friendId,
               friendUsername: username,
               friendMbti: mbtiRaw.toUpperCase(),
-              friendProfilePic: hasImage ? profilePic : null,
+              friendProfilePic: avatarEmoji,
             ),
           ),
         );
@@ -783,18 +771,14 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           children: [
             // Avatar
             Container(
-              width: 56,
-              height: 56,
+              width: 50,
+              height: 50,
               decoration: const BoxDecoration(
-                color: Color(0xFFFFF0EC),
+                color: Color(0xFFFDE8F3),
                 shape: BoxShape.circle,
               ),
               clipBehavior: Clip.antiAlias,
-              child: hasImage
-                  ? Image.network(profilePic, fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          const Icon(Icons.person, size: 28, color: Colors.grey))
-                  : const Icon(Icons.person, size: 28, color: Colors.grey),
+              child: MbtiAvatar(mbtiCode: avatarEmoji, size: 50),
             ),
             const SizedBox(width: 14),
 
@@ -861,10 +845,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     final hasValidMbti = mbtiRaw != null &&
         mbtiRaw.isNotEmpty &&
         mbtiRaw.toUpperCase() != 'NULL';
-    final profilePic = friend['profile_picture'] as String?;
-    final hasImage = profilePic != null &&
-        profilePic.isNotEmpty &&
-        profilePic != 'default.png';
+    final avatarEmoji = friend['avatar_emoji'] as String?;
     final compatibility =
         (row['compatibility_percentage'] as num?)?.toInt() ?? 0;
     final compatValue = compatibility / 100.0;
@@ -879,7 +860,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
               friendId: friend['id'] as String,
               friendUsername: username,
               friendMbti: mbtiRaw.toUpperCase(),
-              friendProfilePic: hasImage ? profilePic : null,
+              friendProfilePic: avatarEmoji,
             ),
           ),
         );
@@ -908,21 +889,21 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                 Column(
                   children: [
                     Container(
-                      width: 72,
-                      height: 72,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFF0EC),
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: hasImage
-                          ? Image.network(profilePic, fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const Icon(
-                                  Icons.person,
-                                  size: 36,
-                                  color: Colors.grey))
-                          : const Icon(Icons.person,
-                              size: 36, color: Colors.grey),
+                      child: MbtiAvatar(mbtiCode: avatarEmoji, size: 54),
                     ),
                     const SizedBox(height: 6),
                     if (hasValidMbti)

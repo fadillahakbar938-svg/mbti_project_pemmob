@@ -1,4 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
+import 'package:audioplayers/audioplayers.dart';
+
 class AuthResult {
   final bool success;
   final String? errorMessage;
@@ -12,6 +15,40 @@ class SupabaseService {
   static final SupabaseService instance = SupabaseService._();
 
   final SupabaseClient _client = Supabase.instance.client;
+
+  final ValueNotifier<int> unreadNotificationsCount = ValueNotifier<int>(0);
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  RealtimeChannel? _globalRealtimeChannel;
+
+  void initGlobalRealtimeListener() {
+    final user = currentUser;
+    if (user == null) return;
+
+    if (_globalRealtimeChannel != null) return;
+
+    _globalRealtimeChannel = _client
+        .channel('public:friend_requests:global')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'friend_requests',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'receiver_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            unreadNotificationsCount.value++;
+            _audioPlayer.play(AssetSource('audio/notification.wav'));
+          },
+        )
+        .subscribe();
+  }
+
+  void stopGlobalRealtimeListener() {
+    _globalRealtimeChannel?.unsubscribe();
+    _globalRealtimeChannel = null;
+  }
 
   User? get currentUser => _client.auth.currentUser;
 

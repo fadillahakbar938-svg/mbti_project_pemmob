@@ -26,22 +26,22 @@ class _CharacterCardsState extends State<CharacterCards> {
   Set<String> _unlockedTypes = {};
 
   final List<Map<String, String>> _allTypes = [
-    {'code': 'INTJ', 'title': 'Arsitek', 'emoji': '♟️'},
-    {'code': 'INTP', 'title': 'Pemikir', 'emoji': '🐧'},
-    {'code': 'ENTJ', 'title': 'Komandan', 'emoji': '🦅'},
-    {'code': 'ENTP', 'title': 'Pendebat', 'emoji': '🦊'},
-    {'code': 'INFJ', 'title': 'Advokat', 'emoji': '🕊️'},
+    {'code': 'INTJ', 'title': 'Architect', 'emoji': '♟️'},
+    {'code': 'INTP', 'title': 'Logician', 'emoji': '🐧'},
+    {'code': 'ENTJ', 'title': 'Commander', 'emoji': '🦅'},
+    {'code': 'ENTP', 'title': 'Debater', 'emoji': '🦊'},
+    {'code': 'INFJ', 'title': 'Advocate', 'emoji': '🕊️'},
     {'code': 'INFP', 'title': 'Mediator', 'emoji': '🐑'},
-    {'code': 'ENFJ', 'title': 'Protagonis', 'emoji': '🐕'},
-    {'code': 'ENFP', 'title': 'Juru Kampanye', 'emoji': '🐬'},
-    {'code': 'ISTJ', 'title': 'Ahli Logistik', 'emoji': '🦉'},
-    {'code': 'ISFJ', 'title': 'Pembela', 'emoji': '🐢'},
-    {'code': 'ESTJ', 'title': 'Eksekutif', 'emoji': '🦁'},
-    {'code': 'ESFJ', 'title': 'Konsul', 'emoji': '🐘'},
-    {'code': 'ISTP', 'title': 'Pengrajin', 'emoji': '🛠️'},
-    {'code': 'ISFP', 'title': 'Petualang', 'emoji': '🎨'},
-    {'code': 'ESTP', 'title': 'Pengusaha', 'emoji': '🚀'},
-    {'code': 'ESFP', 'title': 'Penghibur', 'emoji': '🦚'},
+    {'code': 'ENFJ', 'title': 'Protagonist', 'emoji': '🐕'},
+    {'code': 'ENFP', 'title': 'Campaigner', 'emoji': '🐬'},
+    {'code': 'ISTJ', 'title': 'Logistician', 'emoji': '🦉'},
+    {'code': 'ISFJ', 'title': 'Defender', 'emoji': '🐢'},
+    {'code': 'ESTJ', 'title': 'Executive', 'emoji': '🦁'},
+    {'code': 'ESFJ', 'title': 'Consul', 'emoji': '🐘'},
+    {'code': 'ISTP', 'title': 'Virtuoso', 'emoji': '🛠️'},
+    {'code': 'ISFP', 'title': 'Adventurer', 'emoji': '🎨'},
+    {'code': 'ESTP', 'title': 'Entrepreneur', 'emoji': '🚀'},
+    {'code': 'ESFP', 'title': 'Entertainer', 'emoji': '🦚'},
   ];
 
   @override
@@ -238,11 +238,13 @@ class _CharacterCardsState extends State<CharacterCards> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Hero(
-              tag: 'card-$code',
-              child: Text(
-                data['emoji'] ?? '',
-                style: const TextStyle(fontSize: 32),
+            Expanded(
+              child: Hero(
+                tag: 'card-$code',
+                child: Image.asset(
+                  'assets/images/$code.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(height: 6),

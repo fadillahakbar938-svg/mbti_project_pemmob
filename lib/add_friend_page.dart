@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'custom_bottom_navbar.dart';
 import 'services/supabase_service.dart';
-import 'widgets/user_profile_popup.dart'; // ← import popup
+import 'widgets/user_profile_popup.dart';
+import 'widgets/mbti_avatar.dart'; // ← import popup
 import 'dart:async';
 
 class AddFriendPage extends StatefulWidget {
@@ -310,16 +311,12 @@ class _AddFriendPageState extends State<AddFriendPage> {
     final userId = user['id'] as String;
     final username = user['username'] as String? ?? 'Unknown';
     final mbtiType = user['mbti_type'] as String?;
-    final profilePic = user['profile_picture'] as String?;
+    final avatarEmoji = user['avatar_emoji'] as String?;
     final status = _statusCache[userId] ?? 'none';
 
     final hasValidMbti = mbtiType != null &&
         mbtiType.isNotEmpty &&
         mbtiType.toUpperCase() != 'NULL';
-
-    final hasImage = profilePic != null &&
-        profilePic.isNotEmpty &&
-        profilePic != 'default.png';
 
     return GestureDetector(
       // ── Tap card → buka popup profil ──
@@ -342,23 +339,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Avatar
-              Container(
-                width: 64,
-                height: 64,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFF0EC),
-                  shape: BoxShape.circle,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: hasImage
-                    ? Image.network(
-                        profilePic,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.person, size: 32, color: Colors.grey),
-                      )
-                    : const Icon(Icons.person, size: 32, color: Colors.grey),
-              ),
+              MbtiAvatar(mbtiCode: avatarEmoji, size: 64),
               const SizedBox(width: 16),
 
               // Info

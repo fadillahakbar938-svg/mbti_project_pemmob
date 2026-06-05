@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:mbti_project_pemmob/services/supabase_service.dart';
+import 'package:mbti_project_pemmob/widgets/mbti_avatar.dart';
 
 class MatchDetailPage extends StatefulWidget {
   final int historyId;
@@ -49,7 +51,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
   }
 
   Widget _buildAvatar(Map<String, dynamic> user, String mbti, {bool isRight = false}) {
-    final hasProfilePic = user['profile_picture'] != null && user['profile_picture'].toString().isNotEmpty;
+    final avatarEmoji = user['avatar_emoji'] as String?;
     
     return Column(
       children: [
@@ -66,17 +68,8 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                 offset: const Offset(0, 5),
               ),
             ],
-            image: hasProfilePic
-                ? DecorationImage(
-                    image: NetworkImage(user['profile_picture']),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-            color: hasProfilePic ? null : Colors.white24,
           ),
-          child: !hasProfilePic
-              ? const Icon(Icons.person, size: 40, color: Colors.white)
-              : null,
+          child: MbtiAvatar(mbtiCode: avatarEmoji, size: 80),
         ),
         const SizedBox(height: 8),
         Text(

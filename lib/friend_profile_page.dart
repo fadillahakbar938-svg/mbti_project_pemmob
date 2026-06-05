@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
+import 'widgets/mbti_avatar.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final String friendId;
@@ -423,26 +424,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   Widget _buildAvatar() {
-    final url = widget.friendProfilePic;
-    final hasImage = url != null && url.isNotEmpty && url != 'default.png';
-
-    return Container(
-      width: 74,
-      height: 74,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
-        shape: BoxShape.circle,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: hasImage
-          ? Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) =>
-                  const Icon(Icons.person, size: 42, color: Colors.grey),
-            )
-          : const Icon(Icons.person, size: 42, color: Colors.grey),
-    );
+    return MbtiAvatar(mbtiCode: widget.friendProfilePic, size: 74);
   }
 
   Widget _buildIndicatorRow(String label, double value) {

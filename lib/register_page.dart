@@ -131,7 +131,7 @@ class _RegisterPageState extends State<RegisterPage>
                         const DetectiveSheepLogo(size: 88),
                         const SizedBox(height: 14),
                         const Text(
-                          'MBTI TEST',
+                          'MBTI MATCH',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w900,

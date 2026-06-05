@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'widgets/mbti_avatar.dart';
 import 'widgets/notification_sheet.dart';
 import '../services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
@@ -27,7 +28,6 @@ class _DashboardPageState extends State<DashboardPage> {
   int totalTests = 0;
   int totalMatches = 0;
   int totalCards = 0;
-  int _notificationCount = 0;
   List<Map<String, dynamic>> _recentMatches = [];
 
   @override
@@ -35,6 +35,7 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _loadUserData();
     _loadCounts();
+    SupabaseService.instance.initGlobalRealtimeListener();
   }
 
   String _greetingForTimeOfDay() {
@@ -50,7 +51,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (user == null) {
       if (mounted) {
         setState(() {
-          _notificationCount = 0;
+          SupabaseService.instance.unreadNotificationsCount.value = 0;
         });
       }
       return;
@@ -77,7 +78,7 @@ class _DashboardPageState extends State<DashboardPage> {
         final matches = results[5] as List<Map<String, dynamic>>;
         final notifications = results[6] as List<dynamic>;
         
-        _notificationCount = incomingFriends.length + incomingMatches.length + notifications.length;
+        SupabaseService.instance.unreadNotificationsCount.value = incomingFriends.length + incomingMatches.length + notifications.length;
 
         _recentMatches = matches.take(5).toList(); // Ambil 5 saja untuk di dashboard
       });
@@ -415,13 +416,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                 final percentage = (percentageRaw is num) ? percentageRaw.toDouble() / 100 : 0.50;
                                 
                                 // Provide default emojis and descriptions based on MBTI
-                                String emoji = '😊';
+                                String? avatarEmoji = friendData?['avatar_emoji'] as String?;
                                 String desc = friendUsername; // Gunakan username asli dari database
-                                if (friendMbti == 'INTP') { emoji = '🐧'; }
-                                else if (friendMbti == 'INFP') { emoji = '🐑'; }
-                                else if (friendMbti == 'ENFJ') { emoji = '🦊'; }
-                                else if (friendMbti == 'ESTJ') { emoji = '🦁'; }
-                                else if (friendMbti == 'ISFP') { emoji = '🐼'; }
 
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 16),
@@ -438,7 +434,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       );
                                     },
                                     child: _buildSoulMatchCard(
-                                      emoji,
+                                      avatarEmoji,
                                       friendMbti,
                                       desc,
                                       percentage,
@@ -489,44 +485,50 @@ class _DashboardPageState extends State<DashboardPage> {
               if (_showNotificationPanel) {
                 _showProfileMenu = false;
                 _notifKey = UniqueKey();
+                SupabaseService.instance.unreadNotificationsCount.value = 0;
               }
             });
           },
           child: Center(
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
-                  Icons.notifications_none_rounded,
-                  color: iconColor,
-                  size: 24,
-                ),
-                if (_notificationCount > 0)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.redAccent,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '$_notificationCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+            child: ValueListenableBuilder<int>(
+              valueListenable: SupabaseService.instance.unreadNotificationsCount,
+              builder: (context, count, child) {
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      color: iconColor,
+                      size: 24,
                     ),
-                  ),
-              ],
+                    if (count > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -563,11 +565,9 @@ class _DashboardPageState extends State<DashboardPage> {
             });
           },
           child: Center(
-            child: Text(
-              profilePicture != null && profilePicture.isNotEmpty 
-                ? profilePicture 
-                : '👤', 
-              style: const TextStyle(fontSize: 20),
+            child: MbtiAvatar(
+              mbtiCode: profilePicture,
+              size: 40.0,
             ),
           ),
         ),
@@ -578,12 +578,13 @@ class _DashboardPageState extends State<DashboardPage> {
   void _showEditProfileSheet() {
     final TextEditingController usernameController =
         TextEditingController(text: _displayName.replaceAll('@', ''));
-    String selectedEmoji = _profilePicture ?? '👤';
+    String selectedMbti = _profilePicture ?? '';
 
-    const List<String> emojis = [
-      '👤','👨','👩','👦','👧','👶','👵','👴','👨‍🦱','👩‍🦱',
-      '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
-      '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🐢',
+    const List<String> mbtiCodes = [
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+      'ISTP', 'ISFP', 'ESTP', 'ESFP',
     ];
 
     showModalBottomSheet(
@@ -621,40 +622,39 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Pilih Avatar Emotikon',
+                    'Pilih Avatar Karakter MBTI',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 150,
+                    height: 200,
                     child: GridView.builder(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 6,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
                       ),
-                      itemCount: emojis.length,
+                      itemCount: mbtiCodes.length,
                       itemBuilder: (context, index) {
-                        final emoji = emojis[index];
-                        final isSelected = emoji == selectedEmoji;
+                        final code = mbtiCodes[index];
+                        final isSelected = code == selectedMbti;
                         return InkWell(
                           onTap: () {
                             setStateModal(() {
-                              selectedEmoji = emoji;
+                              selectedMbti = code;
                             });
                           },
                           child: Container(
                             decoration: BoxDecoration(
                               color: isSelected ? Colors.purple.shade100 : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              shape: BoxShape.circle,
                               border: Border.all(
                                 color: isSelected ? Colors.purple : Colors.transparent,
-                                width: 2,
+                                width: 3,
                               ),
                             ),
-                            child: Center(
-                              child: Text(emoji, style: const TextStyle(fontSize: 24)),
-                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: MbtiAvatar(mbtiCode: code, size: 60),
                           ),
                         );
                       },
@@ -677,7 +677,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             userId,
                             {
                               if (newUsername.isNotEmpty) 'username': newUsername,
-                              'avatar_emoji': selectedEmoji,
+                              'avatar_emoji': selectedMbti,
                             },
                           );
                           if (context.mounted) {
@@ -724,9 +724,7 @@ class _DashboardPageState extends State<DashboardPage> {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Center(
-              child: Text('🐑', style: TextStyle(fontSize: 44)),
-            ),
+            child: MbtiAvatar(mbtiCode: _mbtiType, size: 80),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -943,7 +941,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildSoulMatchCard(
-    String emoji,
+    String? avatarEmoji,
     String mbti,
     String description,
     double matchPercentage,
@@ -965,8 +963,7 @@ class _DashboardPageState extends State<DashboardPage> {
               height: 54,
               decoration: const BoxDecoration(
                   color: Colors.white, shape: BoxShape.circle),
-              child:
-                  Center(child: Text(emoji, style: const TextStyle(fontSize: 28))),
+              child: MbtiAvatar(mbtiCode: avatarEmoji, size: 54),
             ),
           ),
           const SizedBox(height: 12),

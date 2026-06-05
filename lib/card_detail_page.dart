@@ -78,7 +78,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
                       ],
                     ),
                     child: Center(
-                      child: Text(widget.emoji, style: const TextStyle(fontSize: 80)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Image.asset('assets/images/${widget.code}.png', fit: BoxFit.contain),
+                      ),
                     ),
                   ),
                 ),
