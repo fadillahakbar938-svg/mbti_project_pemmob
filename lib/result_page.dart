@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
+import 'widgets/mbti_avatar.dart';
 
 
 class MbtiProfile {
@@ -129,7 +130,7 @@ class _ResultPageState extends State<ResultPage> {
 
     return MbtiProfile(
       type: dbProfile['mbti_type'] as String? ?? fallbackMbti,
-      nickname: dbProfile['nickname'] as String? ?? 'The Specialist',
+      nickname: (dbProfile['nickname'] as String? ?? 'The Specialist').replaceAll(RegExp(r'[❤🤍💕♡♥❤️]'), '').trim(),
       shortDescription: dbProfile['short_description'] as String? ?? '',
       strengths: parseList(dbProfile['strengths']),
       weaknesses: parseList(dbProfile['weaknesses']),
@@ -443,128 +444,22 @@ class _ResultPageState extends State<ResultPage> {
     );
   }
 
-  // Cute Character Circle representing the ISFP / INFP avatar blob
+  // Profile avatar using the MBTI character images
   Widget _buildCharacterCircle(MbtiProfile profile) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // White circular background
-        Container(
-          width: 160,
-          height: 160,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-        ),
-
-        // Custom drawn Cute Purple Character Blob
-        Container(
-          width: 104,
-          height: 104,
-          decoration: const BoxDecoration(
-            color: Color(0xFF8E59B3), // Purple creature body
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(52),
-              topRight: Radius.circular(52),
-              bottomLeft: Radius.circular(36),
-              bottomRight: Radius.circular(36),
-            ),
-          ),
-          child: Stack(
-            children: [
-              // Blush
-              Positioned(
-                left: 14,
-                top: 54,
-                child: Container(
-                  width: 14,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFAEC9),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 14,
-                top: 54,
-                child: Container(
-                  width: 14,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFAEC9),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-
-              // Eyes
-              Positioned(
-                left: 28,
-                top: 36,
-                child: _buildEye(),
-              ),
-              Positioned(
-                right: 28,
-                top: 36,
-                child: _buildEye(),
-              ),
-
-              // Smile
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 58,
-                child: Center(
-                  child: Container(
-                    width: 24,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFF2D2132),
-                        width: 3.5,
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(12),
-                        bottomRight: Radius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-
-      ],
-    );
-  }
-
-  Widget _buildEye() {
     return Container(
-      width: 22,
-      height: 22,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      alignment: Alignment.center,
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: const BoxDecoration(
-          color: Color(0xFF2D2132),
-          shape: BoxShape.circle,
-        ),
+      child: MbtiAvatar(
+        mbtiCode: profile.type,
+        size: 160,
       ),
     );
   }
