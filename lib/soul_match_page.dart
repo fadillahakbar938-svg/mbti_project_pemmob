@@ -6,6 +6,7 @@ import 'services/supabase_service.dart';
 import 'match_detail_page.dart';
 import 'friend_profile_page.dart';
 import 'result_page.dart';
+import 'match_loading_page.dart';
 import 'dart:async';
 
 class SoulMatchPage extends StatefulWidget {
@@ -154,28 +155,31 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Soul Match',
-                        style: TextStyle(
-                          fontSize: 32,
-                          color: Color(0xFF1E1E1E),
-                          letterSpacing: -0.5,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Soul Match',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: Color(0xFF1E1E1E),
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tipe yang paling cocok denganmu',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tipe yang paling cocok denganmu',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   _buildAddFriendsButton(),
                 ],
               ),
@@ -700,54 +704,61 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     Color buttonColor = _primaryColor;
     VoidCallback? onPressed;
 
-    if (matchReq == null) {
+    final status = matchReq != null ? matchReq['status'] as String : 'none';
+    final senderId = matchReq != null ? matchReq['sender_id'] as String : '';
+    final reqId = matchReq != null ? (matchReq['id'] as num).toInt() : null;
+
+    if (_myMbti == 'UNKNOWN' || !hasValidMbti) {
+      buttonText = 'Match';
+      buttonColor = _primaryColor;
+      onPressed = () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_myMbti == 'UNKNOWN' 
+              ? 'Anda harus menyelesaikan tes MBTI terlebih dahulu!' 
+              : 'Teman ini belum menyelesaikan tes MBTI!'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      };
+    } else if (status == 'accepted') {
+      buttonText = 'Matched';
+      buttonColor = Colors.green;
+      onPressed = null;
+    } else if (status == 'none' || status == 'rejected') {
       buttonText = 'Match';
       buttonColor = _primaryColor;
       onPressed = () => _handleMatchTap(friendId, 'none', null);
-    } else {
-      final status = matchReq['status'] as String;
-      final senderId = matchReq['sender_id'] as String;
-      final reqId = (matchReq['id'] as num).toInt();
-
-      if (status == 'accepted') {
-        buttonText = 'Matched';
-        buttonColor = Colors.green;
-        onPressed = null;
-      } else if (status == 'rejected') {
-        buttonText = 'Match';
-        buttonColor = _primaryColor;
-        onPressed = () => _handleMatchTap(friendId, 'none', null);
-      } else if (status == 'pending') {
-        if (senderId == userId) {
-          final onCooldown = _isMatchOnCooldown(friendId);
-          if (onCooldown) {
-            final remaining = _matchCooldownRemaining(friendId);
-            buttonText = 'Tunggu ${remaining}d';
-            buttonColor = Colors.grey;
-            onPressed = null;
-          } else {
-            buttonText = 'Batal';
-            buttonColor = Colors.redAccent;
-            onPressed = () => _handleMatchTap(friendId, 'cancel', reqId);
-          }
+    } else if (status == 'pending') {
+      if (senderId == userId) {
+        final onCooldown = _isMatchOnCooldown(friendId);
+        if (onCooldown) {
+          final remaining = _matchCooldownRemaining(friendId);
+          buttonText = 'Tunggu ${remaining}d';
+          buttonColor = Colors.grey;
+          onPressed = null;
         } else {
-          buttonText = 'Terima';
-          buttonColor = Colors.blue;
-          onPressed = () => _handleMatchTap(friendId, 'incoming', reqId);
+          buttonText = 'Batal';
+          buttonColor = Colors.redAccent;
+          onPressed = () => _handleMatchTap(friendId, 'cancel', reqId);
         }
+      } else {
+        buttonText = 'Terima';
+        buttonColor = Colors.blue;
+        onPressed = () => _handleMatchTap(friendId, 'incoming', reqId);
       }
     }
 
     return GestureDetector(
       onTap: () {
-        if (!hasValidMbti) return;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => FriendProfilePage(
               friendId: friendId,
               friendUsername: username,
-              friendMbti: mbtiRaw.toUpperCase(),
+              friendMbti: hasValidMbti ? mbtiRaw!.toUpperCase() : 'UNKNOWN',
               friendProfilePic: avatarEmoji,
             ),
           ),
@@ -946,24 +957,27 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                   ),
                 ),
 
-                // Radial score
-                _buildRadialScore(compatValue),
+                // Radial score hidden until detail page
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade300, width: 2),
+                    color: const Color(0xFFFAF6F0),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.question_mark_rounded,
+                    color: Color(0xFF8E59B3),
+                    size: 24,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
 
-            // Progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: compatValue,
-                minHeight: 10,
-                backgroundColor: const Color(0xFFF1EDE6),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF903636)),
-              ),
-            ),
-            const SizedBox(height: 16),
+
 
             // Detail button
             SizedBox(
@@ -974,9 +988,13 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MatchDetailPage(
+                      builder: (context) => MatchLoadingPage(
                         historyId: row['id'] as int,
-                        supabaseService: SupabaseService.instance,
+                        myMbti: _myMbti,
+                        myAvatarEmoji: _myAvatarEmoji,
+                        friendMbti: mbtiRaw!.toUpperCase(),
+                        friendAvatarEmoji: avatarEmoji,
+                        friendName: username,
                       ),
                     ),
                   );
@@ -989,7 +1007,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                       borderRadius: BorderRadius.circular(16)),
                 ),
                 child: const Text(
-                  'Detail Match',
+                  'Lihat Hasil Match',
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.bold),
                 ),

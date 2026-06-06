@@ -4,27 +4,31 @@ import 'services/supabase_service.dart';
 
 class MbtiProfile {
   final String type;
-  final String title;
-  final String emoji;
-  final String sticker;
-  final String description;
+  final String nickname;
+  final String shortDescription;
   final List<String> strengths;
-  final List<String> growthAreas;
+  final List<String> weaknesses;
   final String communicationStyle;
   final String teamworkStyle;
+  final String decisionStyle;
+  final String thinkingStyle;
+  final String activityStyle;
+  final List<String> careers;
   final List<String> activities;
   final List<String> avoidances;
 
   const MbtiProfile({
     required this.type,
-    required this.title,
-    required this.emoji,
-    required this.sticker,
-    required this.description,
+    required this.nickname,
+    required this.shortDescription,
     required this.strengths,
-    required this.growthAreas,
+    required this.weaknesses,
     required this.communicationStyle,
     required this.teamworkStyle,
+    required this.decisionStyle,
+    required this.thinkingStyle,
+    required this.activityStyle,
+    required this.careers,
     required this.activities,
     required this.avoidances,
   });
@@ -42,33 +46,22 @@ class _ResultPageState extends State<ResultPage> {
   Map<String, dynamic>? _calculatedResult;
   MbtiProfile? _profile;
 
-  // Static MBTI Profiles database
+  // Static MBTI Profiles database fallback
   static const Map<String, MbtiProfile> _profiles = {
     'ISFP': MbtiProfile(
       type: 'ISFP',
-      title: 'The Adventurer',
-      emoji: '🎨',
-      sticker: '🎨',
-      description: 'Flexible and charming, you embrace art and creativity with an open, gentle spirit.',
+      nickname: 'The Adventurer',
+      shortDescription: 'Flexible and charming, you embrace art and creativity with an open, gentle spirit.',
       strengths: ['Charming', 'Sensitive', 'Imaginative', 'Passionate', 'Curious'],
-      growthAreas: ['Fiercely independent', 'Easily stressed', 'Self-critical'],
+      weaknesses: ['Fiercely independent', 'Easily stressed', 'Self-critical'],
       communicationStyle: 'Gentle and reserved, you communicate through actions, art, and meaningful gestures rather than many words. You are a warm and deep listener.',
       teamworkStyle: 'Flexible and easy-going, you contribute through creativity and quiet dedication. You dislike conflict and bring a peaceful, artistic presence to any team.',
+      decisionStyle: 'Value-driven and spontaneous. You prefer keeping options open rather than committing early.',
+      thinkingStyle: 'Focused on the present and tangible facts. You learn by doing rather than theorizing.',
+      activityStyle: 'Energetic but requires solitary downtime to recharge.',
+      careers: ['Artist', 'Designer', 'Musician', 'Counselor', 'Veterinarian'],
       activities: ['Painting & drawing', 'Playing music', 'Hiking & nature', 'Cooking & baking', 'Photography', 'Dance'],
       avoidances: ['Strict rules and rigid routines', 'Conflict and drama', 'Long-term abstract planning', 'Feeling constrained'],
-    ),
-    'INFP': MbtiProfile(
-      type: 'INFP',
-      title: 'The Dreamer',
-      emoji: '🐑',
-      sticker: '🔮',
-      description: 'Quiet, imaginative, and sensitive, you seek to live a life true to your values and inner vision.',
-      strengths: ['Empathetic', 'Generous', 'Open-minded', 'Creative', 'Passionate'],
-      growthAreas: ['Overly idealistic', 'Self-isolating', 'Easily overwhelmed', 'Self-critical'],
-      communicationStyle: 'Warm, thoughtful, and encouraging. You communicate with sincerity and prefer deep, meaningful one-on-one connections.',
-      teamworkStyle: 'Cooperative and supportive, you bring harmony and a strong sense of purpose to your team. You value everyone\'s voice.',
-      activities: ['Writing & poetry', 'Reading', 'Listening to music', 'Volunteering', 'Creative crafts'],
-      avoidances: ['Harsh criticism', 'Cold logic without empathy', 'Large crowd socializing', 'Strict conformity'],
     ),
   };
 
@@ -79,34 +72,26 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   Future<void> _loadResult() async {
+    Map<String, dynamic>? resultData;
+
     // 1. Check if arguments are passed (coming directly from the QuestionPage submit)
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map<String, dynamic>) {
-      setState(() {
-        _calculatedResult = args;
-        _profile = _getMbtiProfile(args['mbti_type'] as String? ?? 'ISFP');
-        _isLoading = false;
-      });
-      return;
-    }
-
-    // 2. Load latest result from database if no arguments passed (coming from dashboard)
-    final user = SupabaseService.instance.currentUser;
-    if (user != null) {
-      final dbResult = await SupabaseService.instance.getLatestResult(user.id);
-      if (dbResult != null) {
-        setState(() {
-          _calculatedResult = _parseDbResult(dbResult);
-          _profile = _getMbtiProfile(_calculatedResult!['mbti_type'] as String? ?? 'ISFP');
-          _isLoading = false;
-        });
-        return;
+      resultData = args;
+    } else {
+      // 2. Load latest result from database if no arguments passed
+      final user = SupabaseService.instance.currentUser;
+      if (user != null) {
+        final dbResult = await SupabaseService.instance.getLatestResult(user.id);
+        if (dbResult != null) {
+          resultData = _parseDbResult(dbResult);
+        }
       }
     }
 
-    // 3. Fallback to mock data if everything else fails (so the page never crashes)
-    setState(() {
-      _calculatedResult = {
+    // 3. Fallback to mock data if everything else fails
+    if (resultData == null) {
+      resultData = {
         'mbti_type': 'ISFP',
         'e_percent': 25.0,
         'i_percent': 75.0,
@@ -117,9 +102,46 @@ class _ResultPageState extends State<ResultPage> {
         'p_percent': 75.0,
         'j_percent': 25.0,
       };
-      _profile = _profiles['ISFP'];
-      _isLoading = false;
-    });
+    }
+
+    final mbtiType = resultData['mbti_type'] as String? ?? 'ISFP';
+    final dbProfile = await SupabaseService.instance.getMbtiProfile(mbtiType);
+
+    if (mounted) {
+      setState(() {
+        _calculatedResult = resultData;
+        _profile = _parseMbtiProfile(dbProfile, mbtiType);
+        _isLoading = false;
+      });
+    }
+  }
+
+  MbtiProfile _parseMbtiProfile(Map<String, dynamic>? dbProfile, String fallbackMbti) {
+    if (dbProfile == null) {
+      return _getMbtiProfile(fallbackMbti); // fallback to hardcoded
+    }
+
+    List<String> parseList(dynamic val) {
+      if (val is List) return val.map((e) => e.toString()).toList();
+      if (val is String) return val.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      return [];
+    }
+
+    return MbtiProfile(
+      type: dbProfile['mbti_type'] as String? ?? fallbackMbti,
+      nickname: dbProfile['nickname'] as String? ?? 'The Specialist',
+      shortDescription: dbProfile['short_description'] as String? ?? '',
+      strengths: parseList(dbProfile['strengths']),
+      weaknesses: parseList(dbProfile['weaknesses']),
+      communicationStyle: dbProfile['communication_style'] as String? ?? '',
+      teamworkStyle: dbProfile['teamwork_style'] as String? ?? '',
+      decisionStyle: dbProfile['decision_style'] as String? ?? '',
+      thinkingStyle: dbProfile['thinking_style'] as String? ?? '',
+      activityStyle: dbProfile['activity_style'] as String? ?? '',
+      careers: parseList(dbProfile['careers']),
+      activities: parseList(dbProfile['activities']),
+      avoidances: parseList(dbProfile['avoidances']),
+    );
   }
 
   // Parse result saved in DB to match our display map
@@ -180,14 +202,16 @@ class _ResultPageState extends State<ResultPage> {
     // Dynamic generation fallback for missing types
     return MbtiProfile(
       type: mbti,
-      title: _getMbtiTitle(mbti),
-      emoji: '🌟',
-      sticker: '✨',
-      description: 'A unique and insightful profile driven by values, dedication, and clear principles.',
+      nickname: _getMbtiTitle(mbti),
+      shortDescription: 'A unique and insightful profile driven by values, dedication, and clear principles.',
       strengths: ['Loyal', 'Perceptive', 'Practical', 'Analytical', 'Dedicated'],
-      growthAreas: ['Struggles with change', 'Overly reserved', 'Avoids risks'],
+      weaknesses: ['Struggles with change', 'Overly reserved', 'Avoids risks'],
       communicationStyle: 'Direct and focused. You prefer realistic talks and concrete details over abstract plans.',
       teamworkStyle: 'Reliable and task-oriented. You work quietly and complete your commitments with high standards.',
+      decisionStyle: 'Logical and structured.',
+      thinkingStyle: 'Analytical and detail-oriented.',
+      activityStyle: 'Organized and methodical.',
+      careers: ['Specialist', 'Analyst', 'Engineer'],
       activities: ['Reading', 'Technology', 'Outdoor sports', 'Individual research', 'Strategy games'],
       avoidances: ['Unproductive meetings', 'Ambiguity', 'Loud environments', 'Unnecessary conflicts'],
     );
@@ -280,17 +304,12 @@ class _ResultPageState extends State<ResultPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      profile.title,
+                      profile.nickname,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF8E59B3),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '💜',
-                      style: TextStyle(fontSize: 18),
                     ),
                   ],
                 ),
@@ -302,71 +321,120 @@ class _ResultPageState extends State<ResultPage> {
                 const SizedBox(height: 20),
 
                 // Introduction summary card
-                _buildDescriptionCard(profile.description),
-
-                const SizedBox(height: 20),
+                if (profile.shortDescription.isNotEmpty) ...[
+                  _buildDescriptionCard(profile.shortDescription),
+                  const SizedBox(height: 20),
+                ],
 
                 // Strengths
-                _buildPillsCard(
-                  icon: const Text('💪', style: TextStyle(fontSize: 20)),
-                  title: 'Strengths',
-                  pills: profile.strengths,
-                  backgroundColor: const Color(0xFFF3E8FA),
-                  textColor: const Color(0xFF8E59B3),
-                ),
+                if (profile.strengths.isNotEmpty) ...[
+                  _buildPillsCard(
+                    icon: const Text('💪', style: TextStyle(fontSize: 20)),
+                    title: 'Strengths',
+                    pills: profile.strengths,
+                    backgroundColor: const Color(0xFFF3E8FA),
+                    textColor: const Color(0xFF8E59B3),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
-                const SizedBox(height: 20),
-
-                // Growth Areas
-                _buildPillsCard(
-                  icon: const Text('🌱', style: TextStyle(fontSize: 20)),
-                  title: 'Growth Areas',
-                  pills: profile.growthAreas,
-                  backgroundColor: const Color(0xFFFFF0EC),
-                  textColor: const Color(0xFF8A6D65),
-                ),
-
-                const SizedBox(height: 20),
+                // Weaknesses
+                if (profile.weaknesses.isNotEmpty) ...[
+                  _buildPillsCard(
+                    icon: const Text('🌱', style: TextStyle(fontSize: 20)),
+                    title: 'Weaknesses',
+                    pills: profile.weaknesses,
+                    backgroundColor: const Color(0xFFFFF0EC),
+                    textColor: const Color(0xFF8A6D65),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
                 // Communication Style
-                _buildDetailStyleCard(
-                  icon: const Text('💬', style: TextStyle(fontSize: 20)),
-                  title: 'Communication Style',
-                  description: profile.communicationStyle,
-                ),
-
-                const SizedBox(height: 20),
+                if (profile.communicationStyle.isNotEmpty) ...[
+                  _buildDetailStyleCard(
+                    icon: const Text('💬', style: TextStyle(fontSize: 20)),
+                    title: 'Communication Style',
+                    description: profile.communicationStyle,
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
                 // Teamwork Style
-                _buildDetailStyleCard(
-                  icon: const Text('🤝', style: TextStyle(fontSize: 20)),
-                  title: 'Teamwork Style',
-                  description: profile.teamworkStyle,
-                ),
+                if (profile.teamworkStyle.isNotEmpty) ...[
+                  _buildDetailStyleCard(
+                    icon: const Text('🤝', style: TextStyle(fontSize: 20)),
+                    title: 'Teamwork Style',
+                    description: profile.teamworkStyle,
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
-                const SizedBox(height: 20),
+                // Decision Style
+                if (profile.decisionStyle.isNotEmpty) ...[
+                  _buildDetailStyleCard(
+                    icon: const Text('⚖️', style: TextStyle(fontSize: 20)),
+                    title: 'Decision Style',
+                    description: profile.decisionStyle,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Thinking Style
+                if (profile.thinkingStyle.isNotEmpty) ...[
+                  _buildDetailStyleCard(
+                    icon: const Text('🧠', style: TextStyle(fontSize: 20)),
+                    title: 'Thinking Style',
+                    description: profile.thinkingStyle,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Activity Style
+                if (profile.activityStyle.isNotEmpty) ...[
+                  _buildDetailStyleCard(
+                    icon: const Text('⚡', style: TextStyle(fontSize: 20)),
+                    title: 'Activity Style',
+                    description: profile.activityStyle,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Careers
+                if (profile.careers.isNotEmpty) ...[
+                  _buildPillsCard(
+                    icon: const Text('💼', style: TextStyle(fontSize: 20)),
+                    title: 'Careers',
+                    pills: profile.careers,
+                    backgroundColor: const Color(0xFFE8F4FA),
+                    textColor: const Color(0xFF2A84C9),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
                 // Activities You Love
-                _buildPillsCard(
-                  icon: const Text('✨', style: TextStyle(fontSize: 20)),
-                  title: 'Activities You Love',
-                  pills: profile.activities,
-                  backgroundColor: const Color(0xFFE8F6F1),
-                  textColor: const Color(0xFF2FA27C),
-                ),
-
-                const SizedBox(height: 20),
+                if (profile.activities.isNotEmpty) ...[
+                  _buildPillsCard(
+                    icon: const Text('✨', style: TextStyle(fontSize: 20)),
+                    title: 'Activities You Love',
+                    pills: profile.activities,
+                    backgroundColor: const Color(0xFFE8F6F1),
+                    textColor: const Color(0xFF2FA27C),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
                 // Avoidances
-                _buildPillsCard(
-                  icon: const Text('🚫', style: TextStyle(fontSize: 20)),
-                  title: 'Avoidances',
-                  pills: profile.avoidances,
-                  backgroundColor: const Color(0xFFFCE8ED),
-                  textColor: const Color(0xFFC92A54),
-                ),
-
-                const SizedBox(height: 32),
+                if (profile.avoidances.isNotEmpty) ...[
+                  _buildPillsCard(
+                    icon: const Text('🚫', style: TextStyle(fontSize: 20)),
+                    title: 'Avoidances',
+                    pills: profile.avoidances,
+                    backgroundColor: const Color(0xFFFCE8ED),
+                    textColor: const Color(0xFFC92A54),
+                  ),
+                  const SizedBox(height: 32),
+                ],
               ],
             ),
           ),
@@ -476,31 +544,7 @@ class _ResultPageState extends State<ResultPage> {
           ),
         ),
 
-        // Top-right sticker indicator (e.g. Paint Palette)
-        Positioned(
-          top: 6,
-          right: 6,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              profile.sticker,
-              style: const TextStyle(fontSize: 22),
-            ),
-          ),
-        ),
+
       ],
     );
   }
@@ -626,20 +670,34 @@ class _ResultPageState extends State<ResultPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontSize: 13)),
-            Text(
-              '${(value * 100).round()}%',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: value),
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, child) {
+                return Text(
+                  '${(val * 100).round()}%',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                );
+              },
             ),
           ],
         ),
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: value,
-            minHeight: 8,
-            color: const Color(0xFF8E59B3),
-            backgroundColor: Colors.grey[200],
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: value),
+            duration: const Duration(milliseconds: 1500),
+            curve: Curves.easeOutCubic,
+            builder: (context, val, child) {
+              return LinearProgressIndicator(
+                value: val,
+                minHeight: 8,
+                color: const Color(0xFF8E59B3),
+                backgroundColor: Colors.grey[200],
+              );
+            },
           ),
         ),
       ],

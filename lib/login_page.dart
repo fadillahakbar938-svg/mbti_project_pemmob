@@ -69,9 +69,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     if (res.success) {
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      setState(
-        () => _errorMsg = res.errorMessage ?? 'Email atau password salah',
-      );
+      String error = res.errorMessage ?? 'Terjadi kesalahan. Silakan coba lagi.';
+      if (error.toLowerCase().contains('invalid login credentials')) {
+        error = 'Email atau kata sandi yang Anda masukkan salah.';
+      }
+      setState(() => _errorMsg = error);
     }
   }
 
@@ -104,11 +106,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 painter: _WavePainter(accentColor.withOpacity(0.6)),
               ),
             ),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: FadeTransition(
+            Positioned.fill(
+              child: SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: FadeTransition(
                     opacity: _fadeAnim,
                     child: SlideTransition(
                       position: _slideAnim,
@@ -267,9 +270,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-          ],
-        ),
+            ),
+          ]
       ),
+    )
     );
   }
 

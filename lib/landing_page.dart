@@ -106,13 +106,14 @@ class _LandingPageState extends State<LandingPage>
             ),
           ),
           const AuthBackgroundBlobs(),
-          // Konten Utama
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
+          Positioned.fill(
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Column(
                 children: [
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 50),
                   // Animasi maskot domba detektif
                   AnimatedBuilder(
                     animation: Listenable.merge([
@@ -130,7 +131,7 @@ class _LandingPageState extends State<LandingPage>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 35),
                   // Judul dan Deskripsi Aplikasi Baru
                   AnimatedBuilder(
                     animation: _entryController,
@@ -282,22 +283,24 @@ class _LandingPageState extends State<LandingPage>
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Dengan masuk, kamu setuju dengan\nKetentuan Layanan & Kebijakan Privasi',
-                    style: TextStyle(
-                      color: subTextColor,
-                      fontSize: 11,
-                      height: 1.3,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
+                  // const Text(
+                  //   'Dengan masuk, kamu setuju dengan\nKetentuan Layanan & Kebijakan Privasi',
+                  //   style: TextStyle(
+                  //     color: subTextColor,
+                  //     fontSize: 11,
+                  //     height: 1.3,
+                  //   ),
+                  //   textAlign: TextAlign.center,
+                  // ),
+                  // const SizedBox(height: 16),
                 ],
               ),
             ),
           ),
-        ],
+            ),
       ),
+        ]
+    )
     );
   }
 

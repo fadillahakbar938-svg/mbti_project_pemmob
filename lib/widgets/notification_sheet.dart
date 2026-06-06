@@ -45,11 +45,29 @@ class _NotificationPanelState extends State<NotificationPanel> {
 
       final combined = [...friendRequests, ...matchRequests, ...notifications];
       
-      // Sort by created_at desc
+      
+      
+      // Sort by created_at desc, fallback to id desc
       combined.sort((a, b) {
-        final aTime = DateTime.tryParse(a['created_at'].toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bTime = DateTime.tryParse(b['created_at'].toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bTime.compareTo(aTime);
+        DateTime parseDate(dynamic val) {
+          if (val == null) return DateTime.fromMillisecondsSinceEpoch(0);
+          final s = val.toString();
+          if (s.isEmpty || s == 'null') return DateTime.fromMillisecondsSinceEpoch(0);
+          final dt = DateTime.tryParse(s);
+          if (dt != null) return dt;
+          return DateTime.fromMillisecondsSinceEpoch(0);
+        }
+
+        final aTime = parseDate(a['created_at']);
+        final bTime = parseDate(b['created_at']);
+        
+        final cmp = bTime.compareTo(aTime);
+        if (cmp != 0) return cmp;
+        
+        // Fallback to ID if times are equal or both missing
+        final aId = (a['id'] as num?)?.toInt() ?? 0;
+        final bId = (b['id'] as num?)?.toInt() ?? 0;
+        return bId.compareTo(aId);
       });
 
       if (!mounted) return;

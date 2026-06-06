@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/app_theme.dart';
 import 'widgets/detective_sheep_logo.dart';
+import 'splash_page.dart';
 import 'landing_page.dart';
 import 'login_page.dart';
 import 'register_page.dart';
@@ -43,7 +44,8 @@ class MyApp extends StatelessWidget {
 
       // Pendaftaran rute navigasi halaman
       routes: {
-        '/': (context) => const LandingPage(),
+        '/': (context) => const SplashPage(),
+        '/landing': (context) => const LandingPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
 

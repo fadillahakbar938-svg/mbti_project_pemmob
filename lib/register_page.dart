@@ -46,16 +46,16 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Anda harus menyetujui Ketentuan Layanan'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
+    // if (!_formKey.currentState!.validate()) return;
+    // if (!_agreeTerms) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(
+    //       content: Text('Anda harus menyetujui Ketentuan Layanan'),
+    //       behavior: SnackBarBehavior.floating,
+    //     ),
+    //   );
+    //   return;
+    // }
 
     setState(() => _isLoading = true);
 
@@ -79,13 +79,29 @@ class _RegisterPageState extends State<RegisterPage>
       );
       Navigator.pushReplacementNamed(context, '/login');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res.errorMessage ?? 'Registrasi gagal'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      final errMsg = res.errorMessage ?? 'Registrasi gagal';
+      final isAlreadyRegistered = errMsg.contains('User already registered') || errMsg.contains('user_already_exists');
+      
+      if (isAlreadyRegistered) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Akun sudah terdaftar! Mengalihkan ke halaman login...'),
+            backgroundColor: Colors.green, // Tampilkan seperti sukses agar user tidak bingung
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) Navigator.pushReplacementNamed(context, '/login');
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errMsg),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -116,13 +132,16 @@ class _RegisterPageState extends State<RegisterPage>
                 painter: _WavePainter(accentColor.withOpacity(0.5)),
               ),
             ),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
+            Positioned.fill(
+              child: SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                      top: 80,
+                      bottom: 32,
+                      left: 24,
+                      right: 24,
+                    ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -222,23 +241,23 @@ class _RegisterPageState extends State<RegisterPage>
                         const SizedBox(height: 14),
 
                         // Checkbox Persetujuan
-                        CheckboxListTile(
-                          title: const Text(
-                            'Saya setuju dengan Ketentuan Layanan & Privasi',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF4A3E4D),
-                            ),
-                          ),
-                          value: _agreeTerms,
-                          activeColor: primaryColor,
-                          checkColor: Colors.white,
-                          onChanged: (v) =>
-                              setState(() => _agreeTerms = v ?? false),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        const SizedBox(height: 18),
+                        // CheckboxListTile(
+                        //   title: const Text(
+                        //     'Saya setuju dengan Ketentuan Layanan & Privasi',
+                        //     style: TextStyle(
+                        //       fontSize: 12,
+                        //       color: Color(0xFF4A3E4D),
+                        //     ),
+                        //   ),
+                        //   value: _agreeTerms,
+                        //   activeColor: primaryColor,
+                        //   checkColor: Colors.white,
+                        //   onChanged: (v) =>
+                        //       setState(() => _agreeTerms = v ?? false),
+                        //   controlAffinity: ListTileControlAffinity.leading,
+                        //   contentPadding: EdgeInsets.zero,
+                        // ),
+                        // const SizedBox(height: 18),
 
                         // Tombol Submit
                         SizedBox(
@@ -302,9 +321,10 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
               ),
             ),
+            ),
           ],
-        ),
       ),
+    )
     );
   }
 

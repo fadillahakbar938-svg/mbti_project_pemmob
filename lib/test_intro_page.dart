@@ -115,7 +115,7 @@ class TestIntroPage extends StatelessWidget {
               const SizedBox(height: 8),
 
               const Text(
-                "80 Pertanyaan • ~5 Menit",
+                "80 Pertanyaan • 10 Menit",
                 style: TextStyle(
                   color: textMuted,
                   fontWeight: FontWeight.w600,
@@ -139,7 +139,7 @@ class TestIntroPage extends StatelessWidget {
 
                   _buildInfoChip(
                     Icons.timer_outlined,
-                    "~5 Menit",
+                    "10 Menit",
                   ),
                 ],
               ),

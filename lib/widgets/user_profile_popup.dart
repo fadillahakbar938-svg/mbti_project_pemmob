@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 
+import '../widgets/mbti_avatar.dart';
+
 /// Menampilkan popup profil lengkap seorang user
 /// Dipanggil saat card di AddFriendPage di-tap
 Future<void> showUserProfilePopup(
@@ -106,8 +108,6 @@ class _UserProfilePopupState extends State<UserProfilePopup>
         mbtiRaw.isNotEmpty &&
         mbtiRaw.toUpperCase() != 'NULL';
     final mbti = hasValidMbti ? mbtiRaw.toUpperCase() : null;
-    final profilePic = widget.user['avatar_emoji'] as String?;
-    final hasImage = profilePic != null && profilePic.isNotEmpty;
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -147,8 +147,6 @@ class _UserProfilePopupState extends State<UserProfilePopup>
                       _buildHeader(
                         username: username,
                         mbti: mbti,
-                        hasImage: hasImage,
-                        profilePic: profilePic,
                       ),
                       const SizedBox(height: 24),
 
@@ -181,36 +179,11 @@ class _UserProfilePopupState extends State<UserProfilePopup>
   Widget _buildHeader({
     required String username,
     required String? mbti,
-    required bool hasImage,
-    required String? profilePic,
   }) {
     return Row(
       children: [
         // Avatar besar
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _purpleLight,
-            boxShadow: [
-              BoxShadow(
-                color: _purple.withValues(alpha: 0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: hasImage
-              ? Center(
-                  child: Text(
-                    profilePic!,
-                    style: const TextStyle(fontSize: 40),
-                  ),
-                )
-              : _avatarFallback(),
-        ),
+        MbtiAvatar(mbtiCode: mbti, size: 80),
         const SizedBox(width: 20),
 
         // Nama + MBTI tag
@@ -267,13 +240,6 @@ class _UserProfilePopupState extends State<UserProfilePopup>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _avatarFallback() {
-    return Container(
-      color: _purpleLight,
-      child: const Icon(Icons.person_rounded, size: 40, color: _purple),
     );
   }
 
@@ -424,153 +390,78 @@ class _UserProfilePopupState extends State<UserProfilePopup>
       ),
       child: Column(
         children: [
-          _buildDimBar(
-            leftLabel: 'Ekstrovert',
-            rightLabel: 'Introvert',
-            leftCode: 'E',
-            rightCode: 'I',
-            leftValue: pct(scoreE, scoreI),
-          ),
-          const SizedBox(height: 14),
-          _buildDimBar(
-            leftLabel: 'Sensing',
-            rightLabel: 'Intuition',
-            leftCode: 'S',
-            rightCode: 'N',
-            leftValue: pct(scoreS, scoreN),
-          ),
-          const SizedBox(height: 14),
-          _buildDimBar(
-            leftLabel: 'Thinking',
-            rightLabel: 'Feeling',
-            leftCode: 'T',
-            rightCode: 'F',
-            leftValue: pct(scoreT, scoreF),
-          ),
-          const SizedBox(height: 14),
-          _buildDimBar(
-            leftLabel: 'Judging',
-            rightLabel: 'Perceiving',
-            leftCode: 'J',
-            rightCode: 'P',
-            leftValue: pct(scoreJ, scoreP),
-          ),
+          _buildIndicatorRow('Ekstrovert', pct(scoreE, scoreI)),
+          const SizedBox(height: 8),
+          _buildIndicatorRow('Introvert', pct(scoreI, scoreE)),
+          const SizedBox(height: 16),
+          
+          _buildIndicatorRow('Sensing', pct(scoreS, scoreN)),
+          const SizedBox(height: 8),
+          _buildIndicatorRow('Intuition', pct(scoreN, scoreS)),
+          const SizedBox(height: 16),
+          
+          _buildIndicatorRow('Thinking', pct(scoreT, scoreF)),
+          const SizedBox(height: 8),
+          _buildIndicatorRow('Feeling', pct(scoreF, scoreT)),
+          const SizedBox(height: 16),
+          
+          _buildIndicatorRow('Judging', pct(scoreJ, scoreP)),
+          const SizedBox(height: 8),
+          _buildIndicatorRow('Perceiving', pct(scoreP, scoreJ)),
         ],
       ),
     );
   }
 
-  Widget _buildDimBar({
-  required String leftLabel,
-  required String rightLabel,
-  required String leftCode,
-  required String rightCode,
-  required double leftValue, // 0.0 → 1.0
-}) {
-  final leftPct = (leftValue * 100).round();
-  final rightPct = 100 - leftPct;
-  final leftWins = leftValue >= 0.5;
-  // Pemenang: kalau kiri menang, fill dari kiri sebesar leftValue
-  // Kalau kanan menang, fill dari kanan sebesar (1 - leftValue)
-  final fillFactor = leftWins ? leftValue : (1 - leftValue);
-
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 20, height: 20,
-                decoration: BoxDecoration(
-                  color: leftWins ? _purple : Colors.grey[200],
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(leftCode,
-                    style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w900,
-                      color: leftWins ? Colors.white : Colors.grey,
-                    )),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text('$leftLabel $leftPct%',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: leftWins ? FontWeight.w800 : FontWeight.w500,
-                  color: leftWins ? _textDark : _textMuted,
-                )),
-            ],
-          ),
-          Row(
-            children: [
-              Text('$rightPct% $rightLabel',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: !leftWins ? FontWeight.w800 : FontWeight.w500,
-                  color: !leftWins ? _textDark : _textMuted,
-                )),
-              const SizedBox(width: 6),
-              Container(
-                width: 20, height: 20,
-                decoration: BoxDecoration(
-                  color: !leftWins ? _purple : Colors.grey[200],
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(rightCode,
-                    style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w900,
-                      color: !leftWins ? Colors.white : Colors.grey,
-                    )),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      const SizedBox(height: 6),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
+  Widget _buildIndicatorRow(String label, double value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Background track
-            Container(
-              height: 10,
-              color: Colors.grey[100],
-            ),
-            // Fill — dari kiri jika leftWins, dari kanan jika rightWins
-            Align(
-              alignment: leftWins
-                  ? Alignment.centerLeft
-                  : Alignment.centerRight,
-              child: FractionallySizedBox(
-                widthFactor: fillFactor,
-                child: Container(
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: _purple,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
+            Text(label, style: const TextStyle(fontSize: 13, color: _textDark, fontWeight: FontWeight.w600)),
+            Text(
+              '${(value * 100).round()}%',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _purple),
             ),
           ],
         ),
-      ),
-    ],
-  );
-}
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: value,
+            minHeight: 10,
+            color: _purple,
+            backgroundColor: Colors.grey[200],
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<String> _parseList(dynamic val) {
+    if (val is List) return val.map((e) => e.toString()).toList();
+    if (val is String) {
+      return val.split(RegExp(r'[,|]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+    return [];
+  }
+
   Widget _buildMbtiDescSection() {
     final profile = _mbtiProfile!;
 
-    final kekuatan = profile['strengths'] as String?;
-    final kelemahan = profile['weaknesses'] as String?;
+    final kekuatan = _parseList(profile['strengths']);
+    final kelemahan = _parseList(profile['weaknesses']);
     final komunikasi = profile['communication_style'] as String?;
-    final karier = profile['careers'] as String?;
+    final tim = profile['teamwork_style'] as String?;
+    final keputusan = profile['decision_style'] as String?;
+    final berpikir = profile['thinking_style'] as String?;
+    final aktivitasGaya = profile['activity_style'] as String?;
+    final karier = _parseList(profile['careers']);
+    final aktivitas = _parseList(profile['activities']);
+    final hindari = _parseList(profile['avoidances']);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,100 +475,209 @@ class _UserProfilePopupState extends State<UserProfilePopup>
           ),
         ),
         const SizedBox(height: 12),
-        if (kekuatan != null)
-          _buildInfoTile(
-            icon: Icons.star_rounded,
-            iconColor: const Color(0xFFFFB938),
-            title: 'Kekuatan',
-            content: kekuatan,
+        if (kekuatan.isNotEmpty) ...[
+          _buildPillsCard(
+            icon: const Text('💪', style: TextStyle(fontSize: 20)),
+            title: 'Kelebihan',
+            pills: kekuatan,
+            backgroundColor: const Color(0xFFF3E8FA),
+            textColor: const Color(0xFF8E59B3),
           ),
-        if (kelemahan != null) ...[
-          const SizedBox(height: 10),
-          _buildInfoTile(
-            icon: Icons.warning_amber_rounded,
-            iconColor: const Color(0xFFFF6B6B),
-            title: 'Tantangan',
-            content: kelemahan,
-          ),
+          const SizedBox(height: 12),
         ],
-        if (komunikasi != null) ...[
-          const SizedBox(height: 10),
-          _buildInfoTile(
-            icon: Icons.chat_bubble_outline_rounded,
-            iconColor: const Color(0xFF4A90E2),
+        if (kelemahan.isNotEmpty) ...[
+          _buildPillsCard(
+            icon: const Text('🌱', style: TextStyle(fontSize: 20)),
+            title: 'Area Pertumbuhan',
+            pills: kelemahan,
+            backgroundColor: const Color(0xFFFFF0EC),
+            textColor: const Color(0xFF8A6D65),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (komunikasi != null && komunikasi.isNotEmpty) ...[
+          _buildDetailStyleCard(
+            icon: const Text('💬', style: TextStyle(fontSize: 20)),
             title: 'Gaya Komunikasi',
-            content: komunikasi,
+            description: komunikasi,
           ),
+          const SizedBox(height: 12),
         ],
-        if (karier != null) ...[
-          const SizedBox(height: 10),
-          _buildInfoTile(
-            icon: Icons.work_outline_rounded,
-            iconColor: const Color(0xFF27AE60),
-            title: 'Karier yang Cocok',
-            content: karier,
+        if (tim != null && tim.isNotEmpty) ...[
+          _buildDetailStyleCard(
+            icon: const Text('🤝', style: TextStyle(fontSize: 20)),
+            title: 'Gaya Kerja Sama Tim',
+            description: tim,
           ),
+          const SizedBox(height: 12),
+        ],
+        if (keputusan != null && keputusan.isNotEmpty) ...[
+          _buildDetailStyleCard(
+            icon: const Text('⚖️', style: TextStyle(fontSize: 20)),
+            title: 'Gaya Pengambilan Keputusan',
+            description: keputusan,
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (berpikir != null && berpikir.isNotEmpty) ...[
+          _buildDetailStyleCard(
+            icon: const Text('🧠', style: TextStyle(fontSize: 20)),
+            title: 'Gaya Berpikir',
+            description: berpikir,
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (aktivitasGaya != null && aktivitasGaya.isNotEmpty) ...[
+          _buildDetailStyleCard(
+            icon: const Text('⚡', style: TextStyle(fontSize: 20)),
+            title: 'Gaya Aktivitas',
+            description: aktivitasGaya,
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (karier.isNotEmpty) ...[
+          _buildPillsCard(
+            icon: const Text('💼', style: TextStyle(fontSize: 20)),
+            title: 'Karier yang Cocok',
+            pills: karier,
+            backgroundColor: const Color(0xFFE8F4FA),
+            textColor: const Color(0xFF2A84C9),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (aktivitas.isNotEmpty) ...[
+          _buildPillsCard(
+            icon: const Text('✨', style: TextStyle(fontSize: 20)),
+            title: 'Aktivitas yang Disukai',
+            pills: aktivitas,
+            backgroundColor: const Color(0xFFE8F6F1),
+            textColor: const Color(0xFF2FA27C),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (hindari.isNotEmpty) ...[
+          _buildPillsCard(
+            icon: const Text('🚫', style: TextStyle(fontSize: 20)),
+            title: 'Hal yang Dihindari',
+            pills: hindari,
+            backgroundColor: const Color(0xFFFCE8ED),
+            textColor: const Color(0xFFC92A54),
+          ),
+          const SizedBox(height: 12),
         ],
       ],
     );
   }
 
-  Widget _buildInfoTile({
-    required IconData icon,
-    required Color iconColor,
+  Widget _buildDetailStyleCard({
+    required Widget icon,
     required String title,
-    required String content,
+    required String description,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 18),
+          Row(
+            children: [
+              icon,
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D2132),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: _textDark,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  content,
-                  style: const TextStyle(
-                    color: _textMuted,
-                    fontSize: 12,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF7D6F83),
+              height: 1.5,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillsCard({
+    required Widget icon,
+    required String title,
+    required List<String> pills,
+    required Color backgroundColor,
+    required Color textColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              icon,
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D2132),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: pills.map((p) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  p,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

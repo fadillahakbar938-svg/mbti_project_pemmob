@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'widgets/mbti_avatar.dart';
 
+
 class FriendProfilePage extends StatefulWidget {
   final String friendId;
   final String friendUsername;
@@ -20,16 +21,6 @@ class FriendProfilePage extends StatefulWidget {
   State<FriendProfilePage> createState() => _FriendProfilePageState();
 }
 
-class FriendMbtiProfile {
-  final List<String> strengths;
-  final List<String> growthAreas;
-
-  const FriendMbtiProfile({
-    required this.strengths,
-    required this.growthAreas,
-  });
-}
-
 class _FriendProfilePageState extends State<FriendProfilePage> {
   static const Color _primaryColor = Color(0xFF8E59B3);
 
@@ -40,26 +31,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   String _tagline = 'Tipe Kepribadian';
   String _quote = 'Menunggu data...';
   Map<String, double> _indicators = const {};
-  FriendMbtiProfile? _profileData;
+  String _matchStatus = 'none';
+  String _myMbti = 'UNKNOWN';
 
-  static const Map<String, FriendMbtiProfile> _profiles = {
-    'ISFP': FriendMbtiProfile(
-      strengths: ['Menawan', 'Sensitif', 'Imajinatif', 'Bersemangat', 'Penasaran'],
-      growthAreas: ['Sangat Mandiri', 'Mudah Stres', 'Kritis pada Diri Sendiri'],
-    ),
-    'INFP': FriendMbtiProfile(
-      strengths: ['Empatis', 'Murah Hati', 'Berpikiran Terbuka', 'Kreatif', 'Bersemangat'],
-      growthAreas: ['Terlalu Idealistis', 'Suka Mengisolasi Diri', 'Mudah Kewalahan', 'Kritis pada Diri Sendiri'],
-    ),
-  };
-
-  FriendMbtiProfile _getMbtiProfile(String mbti) {
-    if (_profiles.containsKey(mbti)) return _profiles[mbti]!;
-    return const FriendMbtiProfile(
-      strengths: ['Setia', 'Peka', 'Praktis', 'Analitis', 'Berdedikasi'],
-      growthAreas: ['Kesulitan dengan Perubahan', 'Terlalu Tertutup', 'Menghindari Risiko'],
-    );
-  }
+  Map<String, dynamic>? _dbProfile;
 
   @override
   void initState() {
@@ -91,9 +66,27 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         mbtiProfile = await SupabaseService.instance.getMbtiProfile(mbti);
       }
 
+      // 5. Cek status match
+      String matchStatus = 'none';
+      String myMbtiType = 'UNKNOWN';
+      final myId = SupabaseService.instance.currentUser?.id;
+      if (myId != null) {
+        matchStatus = await SupabaseService.instance.getMatchRequestStatus(
+          currentUserId: myId,
+          otherUserId: widget.friendId,
+        );
+        final myProfile = await SupabaseService.instance.getUserProfile(myId);
+        final rawMyMbti = myProfile?['mbti_type'] as String?;
+        if (rawMyMbti != null && rawMyMbti.isNotEmpty && rawMyMbti.toUpperCase() != 'NULL') {
+          myMbtiType = rawMyMbti.toUpperCase();
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _loading = false;
+        _matchStatus = matchStatus;
+        _myMbti = myMbtiType;
         
         // Data pengguna
         _name = _resolveDisplayName(profile, widget.friendUsername);
@@ -108,8 +101,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         // Hasil Indikator
         _indicators = _indicatorsFromResult(result);
         
-        // Data Tambahan (Kelebihan & Kekurangan)
-        _profileData = _getMbtiProfile(mbti);
+        // Data Lengkap dari Database
+        _dbProfile = mbtiProfile;
       });
     } catch (_) {
       if (!mounted) return;
@@ -197,6 +190,33 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       '@${widget.friendUsername.replaceAll('@', '')}',
       if (_joinedText.isNotEmpty) _joinedText,
     ].join(' · ');
+
+    String buttonText = 'Minta Match';
+    VoidCallback? onPressed = _requestMatch;
+
+    if (_myMbti == 'UNKNOWN' || _mbtiLabel == 'UNKNOWN') {
+      buttonText = 'Minta Match';
+      onPressed = () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_myMbti == 'UNKNOWN' 
+              ? 'Anda harus menyelesaikan tes MBTI terlebih dahulu!' 
+              : 'Teman ini belum menyelesaikan tes MBTI!'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      };
+    } else if (_matchStatus == 'pending') {
+      buttonText = 'Menunggu Balasan...';
+      onPressed = null;
+    } else if (_matchStatus == 'incoming') {
+      buttonText = 'Cek Tab Match untuk Menerima';
+      onPressed = null;
+    } else if (_matchStatus == 'accepted') {
+      buttonText = 'Minta Match Ulang';
+      onPressed = _requestMatch;
+    }
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -315,12 +335,14 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _requestMatch,
+                      onPressed: onPressed,
                       icon: const Icon(Icons.favorite_rounded, size: 18),
-                      label: const Text('Minta Match Ulang'),
+                      label: Text(buttonText),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _primaryColor,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade600,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -371,10 +393,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                                 ),
                               )
                             else
-                              for (final entry in _indicators.entries) ...[
-                                _buildIndicatorRow(entry.key, entry.value),
-                                const SizedBox(height: 8),
-                              ],
+                               for (final entry in _indicators.entries) ...[
+                                 _buildIndicatorRow(entry.key, entry.value),
+                                 const SizedBox(height: 8),
+                               ],
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -395,23 +417,97 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (_profileData != null) ...[
-                      _buildPillsCard(
-                        icon: const Text('💪', style: TextStyle(fontSize: 20)),
-                        title: 'Kelebihan (Strengths)',
-                        pills: _profileData!.strengths,
-                        backgroundColor: const Color(0xFFF3E8FA),
-                        textColor: const Color(0xFF8E59B3),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildPillsCard(
-                        icon: const Text('🌱', style: TextStyle(fontSize: 20)),
-                        title: 'Area Pertumbuhan',
-                        pills: _profileData!.growthAreas,
-                        backgroundColor: const Color(0xFFFFF0EC),
-                        textColor: const Color(0xFF8A6D65),
-                      ),
-                      const SizedBox(height: 12),
+                    if (_dbProfile != null) ...[
+                      if (_parseList(_dbProfile!['strengths']).isNotEmpty) ...[
+                        _buildPillsCard(
+                          icon: const Text('💪', style: TextStyle(fontSize: 20)),
+                          title: 'Kelebihan (Strengths)',
+                          pills: _parseList(_dbProfile!['strengths']),
+                          backgroundColor: const Color(0xFFF3E8FA),
+                          textColor: const Color(0xFF8E59B3),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_parseList(_dbProfile!['weaknesses']).isNotEmpty) ...[
+                        _buildPillsCard(
+                          icon: const Text('🌱', style: TextStyle(fontSize: 20)),
+                          title: 'Area Pertumbuhan',
+                          pills: _parseList(_dbProfile!['weaknesses']),
+                          backgroundColor: const Color(0xFFFFF0EC),
+                          textColor: const Color(0xFF8A6D65),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if ((_dbProfile!['communication_style'] as String? ?? '').isNotEmpty) ...[
+                        _buildDetailStyleCard(
+                          icon: const Text('💬', style: TextStyle(fontSize: 20)),
+                          title: 'Gaya Komunikasi',
+                          description: _dbProfile!['communication_style'] as String,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if ((_dbProfile!['teamwork_style'] as String? ?? '').isNotEmpty) ...[
+                        _buildDetailStyleCard(
+                          icon: const Text('🤝', style: TextStyle(fontSize: 20)),
+                          title: 'Gaya Kerja Sama Tim',
+                          description: _dbProfile!['teamwork_style'] as String,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if ((_dbProfile!['decision_style'] as String? ?? '').isNotEmpty) ...[
+                        _buildDetailStyleCard(
+                          icon: const Text('⚖️', style: TextStyle(fontSize: 20)),
+                          title: 'Gaya Pengambilan Keputusan',
+                          description: _dbProfile!['decision_style'] as String,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if ((_dbProfile!['thinking_style'] as String? ?? '').isNotEmpty) ...[
+                        _buildDetailStyleCard(
+                          icon: const Text('🧠', style: TextStyle(fontSize: 20)),
+                          title: 'Gaya Berpikir',
+                          description: _dbProfile!['thinking_style'] as String,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if ((_dbProfile!['activity_style'] as String? ?? '').isNotEmpty) ...[
+                        _buildDetailStyleCard(
+                          icon: const Text('⚡', style: TextStyle(fontSize: 20)),
+                          title: 'Gaya Aktivitas',
+                          description: _dbProfile!['activity_style'] as String,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_parseList(_dbProfile!['careers']).isNotEmpty) ...[
+                        _buildPillsCard(
+                          icon: const Text('💼', style: TextStyle(fontSize: 20)),
+                          title: 'Karir',
+                          pills: _parseList(_dbProfile!['careers']),
+                          backgroundColor: const Color(0xFFE8F4FA),
+                          textColor: const Color(0xFF2A84C9),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_parseList(_dbProfile!['activities']).isNotEmpty) ...[
+                        _buildPillsCard(
+                          icon: const Text('✨', style: TextStyle(fontSize: 20)),
+                          title: 'Aktivitas yang Disukai',
+                          pills: _parseList(_dbProfile!['activities']),
+                          backgroundColor: const Color(0xFFE8F6F1),
+                          textColor: const Color(0xFF2FA27C),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_parseList(_dbProfile!['avoidances']).isNotEmpty) ...[
+                        _buildPillsCard(
+                          icon: const Text('🚫', style: TextStyle(fontSize: 20)),
+                          title: 'Hal yang Dihindari',
+                          pills: _parseList(_dbProfile!['avoidances']),
+                          backgroundColor: const Color(0xFFFCE8ED),
+                          textColor: const Color(0xFFC92A54),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                     ],
                   ],
                 ),
@@ -452,6 +548,62 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           ),
         ),
       ],
+    );
+  }
+
+  List<String> _parseList(dynamic val) {
+    if (val is List) return val.map((e) => e.toString()).toList();
+    if (val is String) return val.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return [];
+  }
+
+  Widget _buildDetailStyleCard({
+    required Widget icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              icon,
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D2132),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: Color(0xFF4A4A4A),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -527,8 +679,11 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permintaan match ulang berhasil dikirim!')),
+          SnackBar(content: Text(_matchStatus == 'accepted' ? 'Permintaan match ulang berhasil dikirim!' : 'Permintaan match berhasil dikirim!')),
         );
+        setState(() {
+          _matchStatus = 'pending';
+        });
       }
     } catch (e) {
       if (mounted) {

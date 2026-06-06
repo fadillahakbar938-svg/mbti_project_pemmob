@@ -176,7 +176,7 @@ class _CharacterCardsState extends State<CharacterCards> {
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 8,
+            crossAxisCount: 4,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
             childAspectRatio: 0.8,
