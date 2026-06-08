@@ -164,6 +164,40 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
         backgroundColor: const Color(0xFF6C63FF),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (action) async {
+              if (action == 'delete_match') {
+                final currentUserId = widget.supabaseService.currentUser?.id;
+                if (currentUserId == null) return;
+                try {
+                  await widget.supabaseService.deleteMatchHistory(
+                    currentUserId: currentUserId,
+                    friendId: friend['id'],
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Riwayat match berhasil dihapus.')),
+                    );
+                    Navigator.pop(context); // Kembali
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Terjadi kesalahan: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete_match',
+                child: Text('Hapus Riwayat Match'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

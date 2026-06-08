@@ -546,7 +546,8 @@ Future<List<Map<String, dynamic>>> getFriends(String userId) async {
         receiver:users!receiver_id(id, username, mbti_type, avatar_emoji)
       ''')
       .or('sender_id.eq.$userId,receiver_id.eq.$userId')
-      .eq('status', 'accepted');
+      .eq('status', 'accepted')
+      .order('created_at', ascending: false);
 
   return List<Map<String, dynamic>>.from(response);
 }
@@ -556,7 +557,7 @@ Future<List<Map<String, dynamic>>> getMatches(String userId) async {
   final historyResponse = await _client
       .from('match_history')
       .select('''
-        id, created_at, user_mbti, friend_mbti,
+        id, created_at, user_mbti, friend_mbti, is_revealed,
         friend:users!friend_id(id, username, mbti_type, avatar_emoji)
       ''')
       .eq('user_id', userId)
@@ -582,7 +583,8 @@ Future<List<Map<String, dynamic>>> getMatches(String userId) async {
     matches[i]['summary'] = compat?['summary'] ?? "Belum ada data kecocokan.";
   }
   
-  matches.sort((a, b) => (b['compatibility_percentage'] as int).compareTo(a['compatibility_percentage'] as int));
+  // Sorting berdasarkan persentase dinonaktifkan: 
+  // Daftar dibiarkan terurut berdasarkan 'created_at' descending dari query Supabase.
 
   return matches;
 }
@@ -876,6 +878,7 @@ Future<void> rejectFriendRequest(int requestId) async {
       'friend_id': senderId,
       'user_mbti': receiverMbti,
       'friend_mbti': senderMbti,
+      'is_revealed': false,
     });
 
     // Arah 2: Dari sisi Sender melihat Receiver
@@ -884,6 +887,7 @@ Future<void> rejectFriendRequest(int requestId) async {
       'friend_id': receiverId,
       'user_mbti': senderMbti,
       'friend_mbti': receiverMbti,
+      'is_revealed': false,
     });
 
     final senderName = senderProfile?['username'] as String? ?? 'Seseorang';
@@ -904,6 +908,18 @@ Future<void> rejectFriendRequest(int requestId) async {
         'message': 'Selamat! Anda dan $senderName sekarang resmi Match!',
       }
     ]);
+  }
+
+  /// Tandai bahwa hasil match sudah di-reveal (dilihat)
+  Future<void> setMatchRevealed(int historyId) async {
+    try {
+      await _client
+          .from('match_history')
+          .update({'is_revealed': true})
+          .eq('id', historyId);
+    } catch (e) {
+      print('Gagal update is_revealed: $e');
+    }
   }
 
   /// Tolak match request

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'widgets/auth_background_blobs.dart';
 import 'widgets/detective_sheep_logo.dart';
+import 'widgets/exit_confirmation_wrapper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -83,8 +84,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     const primaryColor = Color(0xFF8E59B3); // Ungu INFP
     const accentColor = Color(0xFFF5E3F7); // Soft Pink/Purple
 
-    return Scaffold(
-      // Background Gradasi Pastel Lembut
+    return ExitConfirmationWrapper(
+      child: Scaffold(
+        // Background Gradasi Pastel Lembut
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -274,6 +276,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ]
       ),
     )
+    ),
     );
   }
 

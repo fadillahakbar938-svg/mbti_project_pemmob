@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'widgets/auth_background_blobs.dart';
 import 'widgets/detective_sheep_logo.dart';
+import 'widgets/exit_confirmation_wrapper.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -46,24 +47,61 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   Future<void> _handleRegister() async {
-    // if (!_formKey.currentState!.validate()) return;
-    // if (!_agreeTerms) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(
-    //       content: Text('Anda harus menyetujui Ketentuan Layanan'),
-    //       behavior: SnackBarBehavior.floating,
-    //     ),
-    //   );
-    //   return;
-    // }
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harap lengkapi semua kolom.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (name.toLowerCase() == email.toLowerCase() || email.split('@')[0].toLowerCase() == name.toLowerCase()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Username tidak boleh sama atau mirip dengan email.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sandi minimal 6 karakter.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (password != _confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sandi dan Konfirmasi Sandi tidak cocok.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     // Mengirimkan data pendaftaran ke Supabase tanpa nim dan jurusan
     final res = await SupabaseService.instance.register(
-      username: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
+      username: name,
+      email: email,
+      password: password,
     );
 
     if (!mounted) return;
@@ -80,23 +118,39 @@ class _RegisterPageState extends State<RegisterPage>
       Navigator.pushReplacementNamed(context, '/login');
     } else {
       final errMsg = res.errorMessage ?? 'Registrasi gagal';
-      final isAlreadyRegistered = errMsg.contains('User already registered') || errMsg.contains('user_already_exists');
+      final lowerErr = errMsg.toLowerCase();
+      
+      final isAlreadyRegistered = lowerErr.contains('user already registered') || lowerErr.contains('user_already_exists');
       
       if (isAlreadyRegistered) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Akun sudah terdaftar! Mengalihkan ke halaman login...'),
-            backgroundColor: Colors.green, // Tampilkan seperti sukses agar user tidak bingung
+            content: Text('Email sudah digunakan oleh orang lain.'),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) Navigator.pushReplacementNamed(context, '/login');
-        });
+
       } else {
+        // Humanize error message
+        String humanError = 'Registrasi gagal. Silakan coba lagi.';
+        if (lowerErr.contains('password should be at least')) {
+          humanError = 'Sandi minimal 6 karakter.';
+        } else if (lowerErr.contains('invalid email')) {
+          humanError = 'Format email tidak valid.';
+        } else if (lowerErr.contains('duplicate key value violates unique constraint') && lowerErr.contains('username')) {
+          humanError = 'Username sudah digunakan oleh orang lain.';
+        } else if (lowerErr.contains('duplicate key value violates unique constraint') && lowerErr.contains('email')) {
+          humanError = 'Email sudah digunakan oleh orang lain.';
+        } else if (lowerErr.contains('rate limit')) {
+          humanError = 'Terlalu banyak percobaan pendaftaran. Coba lagi nanti.';
+        } else if (lowerErr.contains('network') || lowerErr.contains('connection')) {
+          humanError = 'Tidak ada koneksi internet. Coba lagi.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errMsg),
+            content: Text(humanError),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -110,7 +164,8 @@ class _RegisterPageState extends State<RegisterPage>
     const primaryColor = Color(0xFF8E59B3);
     const accentColor = Color(0xFFF5E3F7);
 
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -323,10 +378,12 @@ class _RegisterPageState extends State<RegisterPage>
             ),
             ),
           ],
+        ),
       ),
-    )
+    ),
     );
   }
+
 
   InputDecoration _inputDecoration(String hint, IconData icon, Color color) {
     return InputDecoration(

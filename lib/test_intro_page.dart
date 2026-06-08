@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'custom_bottom_navbar.dart';
 import 'yakin_page.dart';
 import 'services/supabase_service.dart';
+import 'widgets/exit_confirmation_wrapper.dart';
 
 class TestIntroPage extends StatelessWidget {
   const TestIntroPage({super.key});
@@ -18,7 +19,8 @@ class TestIntroPage extends StatelessWidget {
   const textDark = Color(0xFF2D2132);
   const textMuted = Color(0xFF7D6F83);
 
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       backgroundColor: bgCream,
 
       appBar: AppBar(
@@ -363,6 +365,7 @@ class TestIntroPage extends StatelessWidget {
       bottomNavigationBar: const CustomBottomNavbar(
         currentIndex: 1,
       ),
+    ),
     );
   }
 

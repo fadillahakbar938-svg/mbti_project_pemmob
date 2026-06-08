@@ -7,6 +7,7 @@ import 'match_detail_page.dart';
 import 'friend_profile_page.dart';
 import 'result_page.dart';
 import 'match_loading_page.dart';
+import 'widgets/exit_confirmation_wrapper.dart';
 import 'dart:async';
 
 class SoulMatchPage extends StatefulWidget {
@@ -144,7 +145,8 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       backgroundColor: const Color(0xFFFAF6F0),
       body: SafeArea(
         child: Column(
@@ -214,6 +216,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
         ),
       ),
       bottomNavigationBar: const CustomBottomNavbar(currentIndex: 2),
+    ),
     );
   }
 
@@ -614,9 +617,14 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     return null;
   }
 
+  final Set<String> _processingMatchIds = {};
+
   Future<void> _handleMatchTap(String friendId, String status, int? requestId) async {
     final userId = SupabaseService.instance.currentUser?.id;
     if (userId == null) return;
+
+    if (_processingMatchIds.contains(friendId)) return;
+    setState(() => _processingMatchIds.add(friendId));
 
     try {
       if (status == 'none') {
@@ -675,15 +683,19 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
           );
         }
       }
-      _loadData();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Terjadi kesalahan: $e'),
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _processingMatchIds.remove(friendId));
+        _loadData();
       }
     }
   }
@@ -751,8 +763,8 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     }
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => FriendProfilePage(
@@ -763,6 +775,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
             ),
           ),
         );
+        _loadData(); // Segarkan data setelah kembali dari profil teman
       },
       child: Container(
         decoration: BoxDecoration(
@@ -860,21 +873,46 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
     final compatibility =
         (row['compatibility_percentage'] as num?)?.toInt() ?? 0;
     final compatValue = compatibility / 100.0;
+    
+    // Status reveal dari DB (menggunakan is_revealed jika ada)
+    final isRevealed = row['is_revealed'] == true || row['is_revealed'] == 'true' || row['is_revealed'] == 1;
 
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         if (!hasValidMbti) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => FriendProfilePage(
-              friendId: friend['id'] as String,
-              friendUsername: username,
-              friendMbti: mbtiRaw.toUpperCase(),
-              friendProfilePic: avatarEmoji,
+
+        if (!isRevealed) {
+          // Navigasi ke Loading untuk animasi
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MatchLoadingPage(
+                historyId: row['id'] as int,
+                myMbti: _myMbti,
+                myAvatarEmoji: _myAvatarEmoji,
+                friendMbti: mbtiRaw.toUpperCase(),
+                friendAvatarEmoji: avatarEmoji,
+                friendName: username,
+              ),
             ),
-          ),
-        );
+          );
+          
+          // Setelah animasi selesai dan kembali ke halaman ini, update DB dan state
+          await SupabaseService.instance.setMatchRevealed(row['id'] as int);
+          _loadData(); // Refresh UI
+        } else {
+          // Jika sudah direveal, langsung ke Result Page
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MatchDetailPage(
+                historyId: row['id'] as int,
+                supabaseService: SupabaseService.instance,
+              ),
+            ),
+          );
+          _loadData(); // Segarkan kembali jika pengguna menghapus match di detail page
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -958,60 +996,25 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
                 ),
 
                 // Radial score hidden until detail page
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.shade300, width: 2),
-                    color: const Color(0xFFFAF6F0),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.question_mark_rounded,
-                    color: Color(0xFF8E59B3),
-                    size: 24,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-
-
-            // Detail button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MatchLoadingPage(
-                        historyId: row['id'] as int,
-                        myMbti: _myMbti,
-                        myAvatarEmoji: _myAvatarEmoji,
-                        friendMbti: mbtiRaw!.toUpperCase(),
-                        friendAvatarEmoji: avatarEmoji,
-                        friendName: username,
-                      ),
+                if (isRevealed)
+                  _buildRadialScore(compatValue)
+                else
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade300, width: 2),
+                      color: const Color(0xFFFAF6F0),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text(
-                  'Lihat Hasil Match',
-                  style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-              ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.question_mark_rounded,
+                      color: Color(0xFF8E59B3),
+                      size: 24,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

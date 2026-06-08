@@ -46,6 +46,7 @@ class _ResultPageState extends State<ResultPage> {
   bool _isLoading = true;
   Map<String, dynamic>? _calculatedResult;
   MbtiProfile? _profile;
+  String? _avatarEmoji;
 
   // Static MBTI Profiles database fallback
   static const Map<String, MbtiProfile> _profiles = {
@@ -108,10 +109,19 @@ class _ResultPageState extends State<ResultPage> {
     final mbtiType = resultData['mbti_type'] as String? ?? 'ISFP';
     final dbProfile = await SupabaseService.instance.getMbtiProfile(mbtiType);
 
+    // Fetch avatar_emoji
+    String? emoji;
+    final currentUser = SupabaseService.instance.currentUser;
+    if (currentUser != null) {
+      final uProfile = await SupabaseService.instance.getUserProfile(currentUser.id);
+      emoji = uProfile?['avatar_emoji'] as String?;
+    }
+
     if (mounted) {
       setState(() {
         _calculatedResult = resultData;
         _profile = _parseMbtiProfile(dbProfile, mbtiType);
+        _avatarEmoji = emoji;
         _isLoading = false;
       });
     }
@@ -458,7 +468,7 @@ class _ResultPageState extends State<ResultPage> {
         ],
       ),
       child: MbtiAvatar(
-        mbtiCode: profile.type,
+        mbtiCode: _avatarEmoji ?? profile.type,
         size: 160,
       ),
     );

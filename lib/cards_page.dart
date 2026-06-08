@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'custom_bottom_navbar.dart';
 import 'widgets/character_cards.dart';
+import 'widgets/exit_confirmation_wrapper.dart';
 
 class CardsPage extends StatelessWidget {
   const CardsPage({super.key});
@@ -9,7 +10,8 @@ class CardsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const bgCream = Color(0xFFFFFBF7);
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       backgroundColor: bgCream,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -32,6 +34,7 @@ class CardsPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: const CustomBottomNavbar(currentIndex: 3),
+    ),
     );
   }
 }

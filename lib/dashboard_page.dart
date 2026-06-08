@@ -7,6 +7,7 @@ import 'custom_bottom_navbar.dart';
 import 'soul_match_page.dart';
 import 'yakin_page.dart';
 import 'match_detail_page.dart';
+import 'widgets/exit_confirmation_wrapper.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -30,12 +31,25 @@ class _DashboardPageState extends State<DashboardPage> {
   int totalCards = 0;
   List<Map<String, dynamic>> _recentMatches = [];
 
+  bool _isLoadingDashboard = true;
+
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _loadCounts();
+    _loadAllData();
     SupabaseService.instance.initGlobalRealtimeListener();
+  }
+
+  Future<void> _loadAllData() async {
+    await Future.wait([
+      _loadUserData(),
+      _loadCounts(),
+    ]);
+    if (mounted) {
+      setState(() {
+        _isLoadingDashboard = false;
+      });
+    }
   }
 
   String _greetingForTimeOfDay() {
@@ -120,7 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
       final usernameRaw = profile?['username'] as String?;
       final displayName = (usernameRaw != null && usernameRaw.isNotEmpty)
           ? usernameRaw
-          : authUser.email?.split('@').first ?? 'Pengguna';
+          : 'Pengguna';
 
       if (!mounted) return;
       setState(() {
@@ -134,9 +148,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!mounted) return;
       setState(() {
         _isGuest = false;
-        _displayName =
-            SupabaseService.instance.currentUser?.email?.split('@').first ??
-                'Pengguna';
+        _displayName = 'Pengguna';
       });
     }
   }
@@ -163,7 +175,19 @@ class _DashboardPageState extends State<DashboardPage> {
     const menuPink = Color(0xFFFDE2E4);
     const avatarPink = Color(0xFFFCE3EC);
 
-    return Scaffold(
+    if (_isLoadingDashboard) {
+      return const ExitConfirmationWrapper(
+        child: Scaffold(
+          backgroundColor: bgCream,
+          body: Center(
+            child: CircularProgressIndicator(color: purpleMain),
+          ),
+        ),
+      );
+    }
+
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       backgroundColor: bgCream,
       body: SafeArea(
         child: GestureDetector(
@@ -454,6 +478,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       ),
       bottomNavigationBar: const CustomBottomNavbar(currentIndex: 0),
+    ),
     );
   }
 
@@ -724,7 +749,7 @@ class _DashboardPageState extends State<DashboardPage> {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: MbtiAvatar(mbtiCode: _mbtiType, size: 80),
+            child: MbtiAvatar(mbtiCode: _profilePicture, size: 80),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -811,7 +836,36 @@ class _DashboardPageState extends State<DashboardPage> {
             isBottom: true,
             onTap: () {
               setState(() => _showProfileMenu = false);
-              _handleLogout();
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Keluar?'),
+                  content: const Text('Apakah Anda yakin ingin keluar dari akun ini?'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Tidak', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _handleLogout();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Ya'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
