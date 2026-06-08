@@ -770,7 +770,7 @@ class _SoulMatchPageState extends State<SoulMatchPage> {
             builder: (context) => FriendProfilePage(
               friendId: friendId,
               friendUsername: username,
-              friendMbti: hasValidMbti ? mbtiRaw!.toUpperCase() : 'UNKNOWN',
+              friendMbti: hasValidMbti ? mbtiRaw.toUpperCase() : 'UNKNOWN',
               friendProfilePic: avatarEmoji,
             ),
           ),

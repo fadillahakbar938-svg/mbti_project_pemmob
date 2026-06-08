@@ -30,7 +30,6 @@ class UserProfilePopup extends StatefulWidget {
 class _UserProfilePopupState extends State<UserProfilePopup>
     with SingleTickerProviderStateMixin {
   static const Color _purple = Color(0xFF8E59B3);
-  static const Color _purpleLight = Color(0xFFF3E3FC);
   static const Color _cream = Color(0xFFFFFBF7);
   static const Color _textDark = Color(0xFF2D2132);
   static const Color _textMuted = Color(0xFF7D6F83);

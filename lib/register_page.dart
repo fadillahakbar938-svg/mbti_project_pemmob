@@ -24,7 +24,6 @@ class _RegisterPageState extends State<RegisterPage>
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
-  bool _agreeTerms = false;
 
   @override
   void initState() {
