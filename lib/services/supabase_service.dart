@@ -81,6 +81,19 @@ class SupabaseService {
     required String password,
   }) async {
     try {
+      final existingUser = await _client
+          .from('users')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+
+      if (existingUser != null) {
+        return AuthResult(
+          success: false,
+          errorMessage: 'duplicate key value violates unique constraint "username"',
+        );
+      }
+
       print("STEP 1");
       final response =
           await _client.auth.signUp(
@@ -104,7 +117,7 @@ class SupabaseService {
 
       await _client
           .from('users')
-          .insert({
+          .upsert({
         'id': user.id,
         'username': username,
         'email': email, 

@@ -17,6 +17,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isNavigating = false;
   String? _errorMsg;
 
   late Animation<double> _fadeAnim;
@@ -68,11 +69,17 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     setState(() => _isLoading = false);
 
     if (res.success) {
+      setState(() => _isNavigating = true);
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      String error = res.errorMessage ?? 'Terjadi kesalahan. Silakan coba lagi.';
-      if (error.toLowerCase().contains('invalid login credentials')) {
-        error = 'Email atau kata sandi yang Anda masukkan salah.';
+      String error = res.errorMessage ?? 'Terjadi kesalahan sistem. Silakan coba beberapa saat lagi.';
+      final lowerErr = error.toLowerCase();
+      if (lowerErr.contains('invalid login credentials')) {
+        error = 'Email atau kata sandi yang Anda masukkan salah. Mohon periksa kembali huruf besar/kecilnya.';
+      } else if (lowerErr.contains('network') || lowerErr.contains('connection')) {
+        error = 'Tidak ada koneksi internet. Pastikan HP Anda terhubung ke internet yang stabil.';
       }
       setState(() => _errorMsg = error);
     }
@@ -85,6 +92,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     const accentColor = Color(0xFFF5E3F7); // Soft Pink/Purple
 
     return ExitConfirmationWrapper(
+      canPop: _isNavigating,
       child: Scaffold(
         // Background Gradasi Pastel Lembut
       body: Container(

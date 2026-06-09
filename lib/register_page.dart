@@ -24,6 +24,7 @@ class _RegisterPageState extends State<RegisterPage>
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -53,7 +54,7 @@ class _RegisterPageState extends State<RegisterPage>
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Harap lengkapi semua kolom.'),
+          content: Text('Harap lengkapi semua kolom pendaftaran (Username, Email, Sandi).'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -61,21 +62,23 @@ class _RegisterPageState extends State<RegisterPage>
       return;
     }
 
-    if (name.toLowerCase() == email.toLowerCase() || email.split('@')[0].toLowerCase() == name.toLowerCase()) {
+    if (!email.contains('@') || !email.contains('.')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Username tidak boleh sama atau mirip dengan email.'),
+          content: Text('Format email tidak valid. Pastikan menggunakan @ dan domain yang benar.'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
+
+
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Sandi minimal 6 karakter.'),
+          content: Text('Kata sandi terlalu pendek. Silakan buat sandi minimal 6 karakter.'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -86,7 +89,7 @@ class _RegisterPageState extends State<RegisterPage>
     if (password != _confirmController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Sandi dan Konfirmasi Sandi tidak cocok.'),
+          content: Text('Sandi dan Konfirmasi Sandi tidak cocok. Mohon ketik ulang dengan teliti.'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -114,6 +117,9 @@ class _RegisterPageState extends State<RegisterPage>
           behavior: SnackBarBehavior.floating,
         ),
       );
+      setState(() => _isNavigating = true);
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/login');
     } else {
       final errMsg = res.errorMessage ?? 'Registrasi gagal';
@@ -123,8 +129,8 @@ class _RegisterPageState extends State<RegisterPage>
       
       if (isAlreadyRegistered) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email sudah digunakan oleh orang lain.'),
+          SnackBar(
+            content: Text('Email "$email" sudah terdaftar. Silakan gunakan email lain atau langsung Login.'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -132,19 +138,19 @@ class _RegisterPageState extends State<RegisterPage>
 
       } else {
         // Humanize error message
-        String humanError = 'Registrasi gagal. Silakan coba lagi.';
+        String humanError = 'Registrasi gagal: ${res.errorMessage}';
         if (lowerErr.contains('password should be at least')) {
-          humanError = 'Sandi minimal 6 karakter.';
+          humanError = 'Kata sandi terlalu pendek. Silakan buat sandi minimal 6 karakter.';
         } else if (lowerErr.contains('invalid email')) {
-          humanError = 'Format email tidak valid.';
+          humanError = 'Format email "$email" tidak valid. Pastikan penulisan alamat email benar.';
         } else if (lowerErr.contains('duplicate key value violates unique constraint') && lowerErr.contains('username')) {
-          humanError = 'Username sudah digunakan oleh orang lain.';
+          humanError = 'Username "$name" sudah dipakai orang lain. Silakan pilih username unik yang berbeda.';
         } else if (lowerErr.contains('duplicate key value violates unique constraint') && lowerErr.contains('email')) {
-          humanError = 'Email sudah digunakan oleh orang lain.';
+          humanError = 'Email "$email" sudah terdaftar. Silakan gunakan email lain atau langsung Login.';
         } else if (lowerErr.contains('rate limit')) {
-          humanError = 'Terlalu banyak percobaan pendaftaran. Coba lagi nanti.';
+          humanError = 'Terlalu banyak percobaan pendaftaran. Sistem sedang sibuk, coba beberapa saat lagi.';
         } else if (lowerErr.contains('network') || lowerErr.contains('connection')) {
-          humanError = 'Tidak ada koneksi internet. Coba lagi.';
+          humanError = 'Tidak ada koneksi internet. Pastikan HP Anda terhubung ke internet yang stabil.';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,6 +170,7 @@ class _RegisterPageState extends State<RegisterPage>
     const accentColor = Color(0xFFF5E3F7);
 
     return ExitConfirmationWrapper(
+      canPop: _isNavigating,
       child: Scaffold(
       body: Container(
         decoration: const BoxDecoration(
