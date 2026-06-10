@@ -42,14 +42,13 @@ class YakinPage extends StatelessWidget {
 
                 const SizedBox(height: 36),
 
-                // Button "Yakin banget dong"
+                // Button Setuju
                 _buildButton(
                   context: context,
                   text: 'Yakin banget dong',
-                  backgroundColor: const Color(0xFF8E59B3), // Signature purple
+                  backgroundColor: const Color(0xFF8E59B3), 
                   textColor: Colors.white,
                   onPressed: () {
-                    // Navigate to QuestionPage (the test)
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -60,15 +59,14 @@ class YakinPage extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 16),
-
     
+                // Button Batal
                 _buildButton(
                   context: context,
                   text: 'Bentar, mau kembali dulu',
                   backgroundColor: const Color(0xFFE5D2EC), // Soft light purple
                   textColor: Colors.white,
                   onPressed: () {
-                    // Go back to previous screen
                     Navigator.pop(context);
                   },
                 ),

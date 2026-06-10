@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'services/supabase_service.dart';
 
-
 class QuestionPage extends StatefulWidget {
   const QuestionPage({super.key});
-
   @override
   State<QuestionPage> createState() => _QuestionPageState();
 }
@@ -15,30 +13,25 @@ class _QuestionPageState extends State<QuestionPage> {
 
   bool isLoading = true;
   bool get isAllAnswered {
-    return !answers.contains(0);
+    return answers.contains(0);
   }
   Future<void> loadQuestions() async {
     final data =
         await SupabaseService.instance.getQuestions();
 
     setState(() {
-
       questions = data;
-
       answers = List.filled(
         data.length,
         0,
       );
-
       isLoading = false;
-
     });
   }
 
 @override
 void initState() {
   super.initState();
-
   loadQuestions();
 }
 
@@ -47,53 +40,42 @@ void initState() {
   int selectedScore = 0;
   int currentQuestion = 0;
 
-
-
   //function pop up dialog untuk konfirmasi sebelum keluar dari tes
   Future<void> showExitDialog() async {
 
   final result = await showDialog<bool>(
     context: context,
-
     builder: (context) {
       return AlertDialog(
-
         title: const Text(
           "Keluar Tes?"
         ),
-
         content: const Text(
           "Apakah Anda yakin ingin keluar dari tes MBTI? Progress yang belum disimpan akan hilang."
         ),
-
         actions: [
-
           TextButton(
             onPressed: () {
               Navigator.pop(context, false);
             },
             child: const Text("Batal"),
           ),
-
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context, true);
             },
             child: const Text("Keluar"),
           ),
-
         ],
       );
     },
   );
 
   if(result == true){
-
     Navigator.pushReplacementNamed(
       context,
       '/home',
     );
-
   }
 }
 

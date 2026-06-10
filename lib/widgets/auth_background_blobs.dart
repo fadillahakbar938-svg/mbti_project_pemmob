@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Lingkaran dekoratif pastel (sama seperti landing page).
+// GELEMBUNG LANDING PAGE
 class AuthBackgroundBlobs extends StatelessWidget {
   const AuthBackgroundBlobs({super.key});
 

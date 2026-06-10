@@ -96,47 +96,4 @@ class AppTheme {
     );
   }
 
-  /// Judul halaman (mis. Find Soul Match).
-  static TextStyle pageTitle(BuildContext context) {
-    return Theme.of(context).textTheme.displaySmall!;
-  }
-
-  /// Subjudul abu-abu di bawah judul.
-  static TextStyle pageSubtitle(BuildContext context) {
-    return Theme.of(context).textTheme.bodyMedium!;
-  }
-
-  /// Username pada kartu.
-  static TextStyle cardTitle(BuildContext context) {
-    return GoogleFonts.poppins(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-      color: textDark,
-      height: 1.3,
-    );
-  }
-
-  /// ID / teks sekunder pada kartu.
-  static TextStyle cardSubtitle(BuildContext context) {
-    return Theme.of(context).textTheme.bodySmall!;
-  }
-
-  /// Input & placeholder search bar.
-  static TextStyle searchInput(BuildContext context) {
-    return GoogleFonts.poppins(
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-      color: textDark,
-    );
-  }
-
-  /// Tombol Add Friend.
-  static TextStyle buttonLabel(BuildContext context) {
-    return Theme.of(context).textTheme.labelLarge!;
-  }
-
-  /// Pesan hint di tengah layar.
-  static TextStyle hintMessage(BuildContext context) {
-    return Theme.of(context).textTheme.bodyMedium!.copyWith(height: 1.45);
-  }
 }

@@ -94,17 +94,11 @@ class SupabaseService {
         );
       }
 
-      print("STEP 1");
       final response =
           await _client.auth.signUp(
         email: email,
         password: password,
       );
-
-      print("SIGNUP RESPONSE:");
-      print(response);
-
-      print("STEP 2");
 
       final user = response.user;
 
@@ -121,50 +115,18 @@ class SupabaseService {
         'id': user.id,
         'username': username,
         'email': email, 
-        // 'mbti_type': null,
-        // 'avatar_emoji': 'default.png',
       });
 
-      print("STEP 3");
       return AuthResult(
         success: true,
       );
 
-    } catch (e, stack) {
-      print("ERROR REGISTER:");
-      print(e);
-
-      print("STACK:");
-      print(stack);
-
+    } catch (e) {
       return AuthResult(
         success: false,
         errorMessage: e.toString(),
       );
     }
-  }
-
-  Future<AuthResult> loginWithGoogle() async {
-    // try {
-    //   await _client.auth.signInWithOAuth(
-    //     Provider.google,
-    //   );
-
-    //   return AuthResult(
-    //     success: true,
-    //   );
-
-    // } catch (error) {
-    //   return AuthResult(
-    //     success: false,
-    //     errorMessage:
-    //         'Login Google gagal: ${error.toString()}',
-    //   );
-    // }
-    return AuthResult(
-      success: false,
-      errorMessage: 'Login Google belum diaktifkan',
-    );
   }
 
   Future<void> signOut() async {
@@ -284,7 +246,7 @@ class SupabaseService {
       final int score =
           (item['answer_value'] as num).toInt();
 
-      switch(target){
+      switch(target){ 
 
         case 'E':
           e += score;

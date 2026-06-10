@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
+import '../services/supabase_service.dart';
 
-import '../widgets/mbti_avatar.dart';
+import 'mbti_avatar.dart';
 
 /// Menampilkan popup profil lengkap seorang user
 /// Dipanggil saat card di AddFriendPage di-tap

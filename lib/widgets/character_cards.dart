@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-
 import '../card_detail_page.dart';
-
 import '../services/supabase_service.dart';
 
 class _CardTheme {

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'widgets/mbti_avatar.dart';
-import 'widgets/notification_sheet.dart';
-import '../services/supabase_service.dart';
+import 'services/supabase_service.dart';
 import 'custom_bottom_navbar.dart';
 import 'soul_match_page.dart';
 import 'yakin_page.dart';
 import 'match_detail_page.dart';
+
+import 'widgets/mbti_avatar.dart';
+import 'widgets/notification_sheet.dart';
 import 'widgets/exit_confirmation_wrapper.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -17,8 +18,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String _displayName = 'Tamu';
-  bool _isGuest = true;
+  String _displayName = 'User';
   String? _profilePicture;
   String? _mbtiType;
   String _mbtiNickname = 'Uji dirimu sekarang';
@@ -104,12 +104,9 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _loadUserData() async {
     final authUser = SupabaseService.instance.currentUser;
     if (authUser == null) {
-      setState(() {
-        _isGuest = true;
-        _displayName = 'Tamu';
-        _profilePicture = null;
-        _mbtiType = null;
-      });
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/landing');
+      }
       return;
     }
 
@@ -138,7 +135,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
       if (!mounted) return;
       setState(() {
-        _isGuest = false;
         _displayName = displayName;
         _profilePicture = profile?['avatar_emoji'] as String?;
         _mbtiType = mbti;
@@ -147,7 +143,6 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _isGuest = false;
         _displayName = 'Pengguna';
       });
     }
@@ -256,9 +251,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                         const SizedBox(height: 16),
                         GestureDetector(
-                          onTap: _isGuest
-                              ? _showGuestWarning
-                              : () {
+                          onTap: () {
                                   if (_mbtiType != null) {
                                     Navigator.pushNamed(context, '/result');
                                   } else {
@@ -293,13 +286,13 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Statistik ──
+                // Statistik
                 Row(
                   children: [
                     Expanded(
                       child: _buildStatCard(
                         '💖',
-                        _isGuest ? '-' : totalMatches.toString(),
+                        totalMatches.toString(),
                         'Matches',
                         textDark,
                       ),
@@ -317,7 +310,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     Expanded(
                       child: _buildStatCard(
                         '🎴',
-                        _isGuest ? '-' : totalCards.toString(),
+                        totalCards.toString(),
                         'Kartu',
                         textDark,
                       ),
@@ -326,7 +319,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // ── Tombol aksi ──
+                // Tombol aksi
                 Row(
                   children: [
                     Expanded(
@@ -337,9 +330,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         title: 'Ambil Tes',
                         subtitle: '80 pertanyaan',
                         textColor: textDark,
-                        onTap: _isGuest
-                            ? _showGuestWarning
-                            : () {
+                        onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -357,9 +348,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         title: 'Soul Match',
                         subtitle: 'Temukan pasanganmu',
                         textColor: textDark,
-                        onTap: _isGuest
-                            ? _showGuestWarning
-                            : () {
+                        onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -385,7 +374,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: _isGuest ? _showGuestWarning : () {
+                      onTap: () {
                         // Navigate to matches tab in bottom navbar
                         Navigator.pushReplacement(
                           context,
@@ -408,9 +397,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _isGuest
-                    ? _buildLockedMatchesPlaceholder()
-                    : _recentMatches.isEmpty
+                    _recentMatches.isEmpty
                         ? Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
@@ -908,7 +895,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _handleLogout() async {
-    if (!_isGuest) await SupabaseService.instance.signOut();
+    await SupabaseService.instance.signOut();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
@@ -1051,63 +1038,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 fontWeight: FontWeight.w800),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLockedMatchesPlaceholder() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          const Text('🔒', style: TextStyle(fontSize: 28)),
-          const SizedBox(height: 8),
-          const Text('Fitur Terbatas untuk Tamu',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Color(0xFF2D2132))),
-          const SizedBox(height: 4),
-          const Text(
-            'Silakan selesaikan tes MBTI atau daftar akun baru untuk melihat kecocokan kepribadianmu.',
-            style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                context, '/login', (route) => false),
-            child: const Text('Masuk / Daftar Sekarang',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Color(0xFF8E59B3))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showGuestWarning() {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-            'Fitur ini memerlukan akun terdaftar. Yuk daftar dulu! 🔮'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF8E59B3),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        action: SnackBarAction(
-          label: 'Daftar',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            Navigator.pushNamed(context, '/register');
-          },
-        ),
       ),
     );
   }

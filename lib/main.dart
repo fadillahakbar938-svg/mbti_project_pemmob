@@ -14,7 +14,6 @@ import 'result_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Pastikan asset maskot terdaftar sebelum UI dibuka.
   await rootBundle.load(DetectiveSheepLogo.assetPath);
 
   await Supabase.initialize(
@@ -37,19 +36,13 @@ class MyApp extends StatelessWidget {
 
       theme: AppTheme.light(),
 
-      // Halaman pertama yang pertama kali muncul saat aplikasi dibuka
-      // NOTE: sementara di-set ke '/profile' agar mudah preview halaman profil.
-      // Ubah kembali ke '/' saat selesai.
       initialRoute: '/',
 
-      // Pendaftaran rute navigasi halaman
       routes: {
         '/': (context) => const SplashPage(),
         '/landing': (context) => const LandingPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-
-        // Rute tujuan diubah ke DashboardPage yang baru saja dibuat
         '/home': (context) => const DashboardPage(),
         '/cards': (context) => const CardsPage(),
         '/result': (context) => const ResultPage(),

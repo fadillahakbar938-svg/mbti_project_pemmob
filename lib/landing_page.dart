@@ -81,15 +81,13 @@ class _LandingPageState extends State<LandingPage>
 
   @override
   Widget build(BuildContext context) {
-    // Definisi Warna Tema Pastel INFP
-    const primaryColor = Color(0xFF8E59B3); // Ungu INFP
-    const textColor = Color(0xFF4A3E4D); // Ungu Gelap Lembut untuk Teks
-    const subTextColor = Color(0xFF8E7A93); // Abu-abu keunguan untuk Subtitle
+    const primaryColor = Color(0xFF8E59B3); 
+    const textColor = Color(0xFF4A3E4D); 
+    const subTextColor = Color(0xFF8E7A93); 
 
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradasi Pastel Lembut yang Bergerak Mandiri
           AnimatedBuilder(
             animation: _bgController,
             builder: (_, _) => Container(
@@ -114,7 +112,6 @@ class _LandingPageState extends State<LandingPage>
                   child: Column(
                 children: [
                   const SizedBox(height: 50),
-                  // Animasi maskot domba detektif
                   AnimatedBuilder(
                     animation: Listenable.merge([
                       _entryController,
@@ -132,7 +129,6 @@ class _LandingPageState extends State<LandingPage>
                     ),
                   ),
                   const SizedBox(height: 35),
-                  // Judul dan Deskripsi Aplikasi Baru
                   AnimatedBuilder(
                     animation: _entryController,
                     builder: (_, _) => Opacity(
@@ -169,7 +165,6 @@ class _LandingPageState extends State<LandingPage>
                     ),
                   ),
                   const SizedBox(height: 18),
-                  // Kapsul Fitur Berwarna Pastel Serasi
                   AnimatedBuilder(
                     animation: _entryController,
                     builder: (_, _) => Opacity(
@@ -196,7 +191,7 @@ class _LandingPageState extends State<LandingPage>
                         offset: Offset(0, (1 - _buttonsEntry.value) * 40),
                         child: Column(
                           children: [
-                            // Tombol MASUK (Warna Utama INFP)
+                            // Tombol MASUK 
                             SizedBox(
                               width: double.infinity,
                               height: 54,
@@ -222,7 +217,7 @@ class _LandingPageState extends State<LandingPage>
                               ),
                             ),
                             const SizedBox(height: 12),
-                            // Tombol DAFTAR AKUN BARU (Outline Elegan)
+                            // Tombol DAFTAR AKUN BARU 
                             SizedBox(
                               width: double.infinity,
                               height: 54,
@@ -251,32 +246,7 @@ class _LandingPageState extends State<LandingPage>
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            // Tombol MASUK SEBAGAI GUEST (Paling Bawah)
-                            SizedBox(
-                              width: double.infinity,
-                              height: 54,
-                              child: TextButton(
-                                onPressed: () => Navigator.pushReplacementNamed(
-                                  context,
-                                  '/home',
-                                ),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: primaryColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Masuk sebagai Guest',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            
                           ],
                         ),
                       ),

@@ -8,7 +8,6 @@ class DetectiveSheepLogo extends StatelessWidget {
     this.showBadge = true,
   });
 
-  /// Path harus sama dengan entri di pubspec.yaml.
   static const String assetPath = 'assets/images/detective_sheep_mascot.png';
 
   final double size;

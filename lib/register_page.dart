@@ -73,8 +73,6 @@ class _RegisterPageState extends State<RegisterPage>
       return;
     }
 
-
-
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -99,7 +97,6 @@ class _RegisterPageState extends State<RegisterPage>
 
     setState(() => _isLoading = true);
 
-    // Mengirimkan data pendaftaran ke Supabase tanpa nim dan jurusan
     final res = await SupabaseService.instance.register(
       username: name,
       email: email,
@@ -300,25 +297,6 @@ class _RegisterPageState extends State<RegisterPage>
                         ),
 
                         const SizedBox(height: 14),
-
-                        // Checkbox Persetujuan
-                        // CheckboxListTile(
-                        //   title: const Text(
-                        //     'Saya setuju dengan Ketentuan Layanan & Privasi',
-                        //     style: TextStyle(
-                        //       fontSize: 12,
-                        //       color: Color(0xFF4A3E4D),
-                        //     ),
-                        //   ),
-                        //   value: _agreeTerms,
-                        //   activeColor: primaryColor,
-                        //   checkColor: Colors.white,
-                        //   onChanged: (v) =>
-                        //       setState(() => _agreeTerms = v ?? false),
-                        //   controlAffinity: ListTileControlAffinity.leading,
-                        //   contentPadding: EdgeInsets.zero,
-                        // ),
-                        // const SizedBox(height: 18),
 
                         // Tombol Submit
                         SizedBox(

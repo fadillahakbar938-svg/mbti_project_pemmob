@@ -20,7 +20,6 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     
-    // Setup animation
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -36,7 +35,6 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     _animController.forward();
 
-    // Setup timer for navigation
     Timer(const Duration(seconds: 3), _checkSessionAndNavigate);
   }
 
@@ -45,10 +43,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     
     final user = SupabaseService.instance.currentUser;
     if (user != null) {
-      // User is already logged in, go to home
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      // Not logged in, go to landing page
       Navigator.pushReplacementNamed(context, '/landing');
     }
   }
