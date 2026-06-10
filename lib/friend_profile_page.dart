@@ -44,7 +44,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
 
   Future<void> _loadFriendData() async {
     try {
-      // 1. Ambil dari tabel `users` untuk joined date dan nama asli
+      // 1. Ambil dari tabel `users`
       final profile = await SupabaseService.instance.getUserProfile(widget.friendId);
       
       // 2. Ambil hasil tes terbaru dari tabel `results`
@@ -114,12 +114,9 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   String _resolveDisplayName(Map<String, dynamic>? profile, String fallbackUsername) {
-    final fromDb = profile?['full_name'] ??
-        profile?['name'] ??
-        profile?['nama'] ??
-        profile?['username'];
-    if (fromDb != null && fromDb.toString().trim().isNotEmpty) {
-      return fromDb.toString().trim();
+    final username = profile?['username'];
+    if (username != null && username.toString().trim().isNotEmpty) {
+      return username.toString().trim();
     }
     return fallbackUsername;
   }
@@ -393,10 +390,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                                 ),
                               )
                             else
-                               for (final entry in _indicators.entries) ...[
-                                 _buildIndicatorRow(entry.key, entry.value),
-                                 const SizedBox(height: 8),
-                               ],
+                                for (final entry in _indicators.entries) ...[
+                                  _buildIndicatorRow(entry.key, entry.value),
+                                  const SizedBox(height: 8),
+                                ],
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.all(12),

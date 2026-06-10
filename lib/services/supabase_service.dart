@@ -346,7 +346,6 @@ class SupabaseService {
     final pattern = '%$trimmed%';
     final orFilter = 'username.ilike.$pattern,email.ilike.$pattern';
 
-    print('DEBUG searchUsers: query=$trimmed, pattern=$pattern, exclude=$excludeUserId');
 
     try {
       List<Map<String, dynamic>> response;
@@ -366,13 +365,9 @@ class SupabaseService {
             .limit(limit);
       }
 
-      print('DEBUG searchUsers result count: ${response.length}');
-      print('DEBUG searchUsers results: $response');
 
       return List<Map<String, dynamic>>.from(response);
-    } catch (e, stack) {
-      print('DEBUG searchUsers ERROR: $e');
-      print('DEBUG searchUsers STACK: $stack');
+    } catch (e) {
       return [];
     }
   }
@@ -558,8 +553,6 @@ Future<List<Map<String, dynamic>>> getMatches(String userId) async {
     matches[i]['summary'] = compat?['summary'] ?? "Belum ada data kecocokan.";
   }
   
-  // Sorting berdasarkan persentase dinonaktifkan: 
-  // Daftar dibiarkan terurut berdasarkan 'created_at' descending dari query Supabase.
 
   return matches;
 }

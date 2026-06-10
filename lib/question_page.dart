@@ -81,15 +81,11 @@ void initState() {
 
 //function untuk back ke soal sebelumnya
 void previousQuestion() {
-
   if(currentQuestion > 0){
-
     setState(() {
       currentQuestion--;
     });
-
   }
-
 }
 
   final List<Map<String, dynamic>> scores = [
@@ -126,16 +122,13 @@ void previousQuestion() {
 //function untuk next ke soal berikutnya
 
   void nextQuestion(){
-
     if(currentQuestion <
         questions.length-1){
-
       setState(() {
         currentQuestion++;
         selectedScore =
             answers[currentQuestion];
       });
-
     }else{
       setState((){});
       if (isAllAnswered) {
@@ -151,9 +144,7 @@ void previousQuestion() {
 
   //function untuk menyimpan jawaban dan lanjut ke soal berikutnya
   Future<void> saveAnswer() async {
-
     if(selectedScore == 0){
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -161,10 +152,8 @@ void previousQuestion() {
           ),
         ),
       );
-
       return;
     }
-
     // simpan jawaban
     setState(() {
       answers[currentQuestion] = selectedScore;
@@ -174,9 +163,7 @@ void previousQuestion() {
         SupabaseService
             .instance
             .currentUser;
-
     if(user == null){
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -184,10 +171,8 @@ void previousQuestion() {
           ),
         ),
       );
-
       return;
     }
-
 
     await SupabaseService.instance.saveAnswer(
       userId: user.id,
@@ -197,23 +182,17 @@ void previousQuestion() {
     );
   nextQuestion();
 }
- Future<void> submitTest() async {
-
+Future<void> submitTest() async {
   final confirm = await showDialog<bool>(
     context: context,
-
     builder: (_) => AlertDialog(
-
       title: const Text(
         "Selesai Tes"
       ),
-
       content: const Text(
         "Yakin ingin mengirim jawaban?"
       ),
-
       actions: [
-
         TextButton(
           onPressed: () {
             Navigator.pop(
@@ -225,7 +204,6 @@ void previousQuestion() {
             "Batal",
           ),
         ),
-
         ElevatedButton(
           onPressed: () {
             Navigator.pop(
@@ -240,41 +218,28 @@ void previousQuestion() {
       ],
     ),
   );
-
   if(confirm != true){
     return;
   }
-
   final user =
       SupabaseService
           .instance
           .currentUser;
-
   if(user == null){
     return;
   }
-
   final result =
       await SupabaseService
           .instance
           .calculateMbti(
             user.id,
           );
-
-  print("RESULT:");
-  print(result);
-
   await SupabaseService
       .instance
       .saveResult(
         userId: user.id,
         result: result,
       );
-  print("SAVE RESULT SUCCESS");
-
-  print("HASIL MBTI");
-  print(result);
-
   Navigator.pushReplacementNamed(
     context,
     '/result',
@@ -284,11 +249,8 @@ void previousQuestion() {
 
 //function untuk menampilkan daftar soal
 void showQuestionList() {
-
   showModalBottomSheet(
-
     context: context,
-
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(25),
@@ -331,44 +293,30 @@ void showQuestionList() {
 
                     bool answered =
                         answers[index] != 0;
-
                     return GestureDetector(
-
                       onTap: () {
-
                         Navigator.pop(context);
-
                         setState(() {
-
                           currentQuestion =
                               index;
-
                           selectedScore =
                               answers[index];
-
                         });
                       },
-
                       child: Container(
-
                         decoration: BoxDecoration(
-
                           color: index ==
                                   currentQuestion
                               ? const Color(0xffA162C5)
                               : answered
                                   ? Colors.green
                                   : Colors.grey.shade300,
-
                           borderRadius:
                               BorderRadius.circular(10),
                         ),
-
                         child: Center(
                           child: Text(
-
                             "${index + 1}",
-
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight:
@@ -411,8 +359,8 @@ void showQuestionList() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-                   /// TOP BAR
-                    Row(
+                /// TOP BAR
+                Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                 children: [
@@ -634,83 +582,83 @@ void showQuestionList() {
 
               /// SCORE
               Row(
-  children: List.generate(
-    scores.length,
-    (index) {
+                children: List.generate(
+                  scores.length,
+                  (index) {
 
-      bool selected =
-          selectedScore == index + 1;
+                    bool selected =
+                        selectedScore == index + 1;
 
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
 
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedScore = index + 1;
-              });
-            },
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedScore = index + 1;
+                            });
+                          },
 
-            child: Container(
-              height: 80,
+                          child: Container(
+                            height: 80,
 
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xffA162C5)
-                    : Colors.white,
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? const Color(0xffA162C5)
+                                  : Colors.white,
 
-                borderRadius:
-                    BorderRadius.circular(12),
+                              borderRadius:
+                                  BorderRadius.circular(12),
 
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 3,
-                  )
-                ],
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 3,
+                                )
+                              ],
+                            ),
+
+                            child: Column(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
+
+                              children: [
+
+                                Text(
+                                  scores[index]["num"],
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                    color: selected
+                                        ? Colors.white
+                                        : Colors.grey,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Text(
+                                  scores[index]["label"],
+                                  textAlign:
+                                      TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 7,
+                                    color: selected
+                                        ? Colors.white
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-
-              child: Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-
-                children: [
-
-                  Text(
-                    scores[index]["num"],
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight:
-                          FontWeight.bold,
-                      color: selected
-                          ? Colors.white
-                          : Colors.grey,
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-                    scores[index]["label"],
-                    textAlign:
-                        TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 7,
-                      color: selected
-                          ? Colors.white
-                          : Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    },
-  ),
-),
 
               SizedBox(height: 25),
 

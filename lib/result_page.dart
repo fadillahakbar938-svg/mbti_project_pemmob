@@ -48,25 +48,6 @@ class _ResultPageState extends State<ResultPage> {
   MbtiProfile? _profile;
   String? _avatarEmoji;
 
-  // Static MBTI Profiles database fallback
-  static const Map<String, MbtiProfile> _profiles = {
-    'ISFP': MbtiProfile(
-      type: 'ISFP',
-      nickname: 'The Adventurer',
-      shortDescription: 'Flexible and charming, you embrace art and creativity with an open, gentle spirit.',
-      strengths: ['Charming', 'Sensitive', 'Imaginative', 'Passionate', 'Curious'],
-      weaknesses: ['Fiercely independent', 'Easily stressed', 'Self-critical'],
-      communicationStyle: 'Gentle and reserved, you communicate through actions, art, and meaningful gestures rather than many words. You are a warm and deep listener.',
-      teamworkStyle: 'Flexible and easy-going, you contribute through creativity and quiet dedication. You dislike conflict and bring a peaceful, artistic presence to any team.',
-      decisionStyle: 'Value-driven and spontaneous. You prefer keeping options open rather than committing early.',
-      thinkingStyle: 'Focused on the present and tangible facts. You learn by doing rather than theorizing.',
-      activityStyle: 'Energetic but requires solitary downtime to recharge.',
-      careers: ['Artist', 'Designer', 'Musician', 'Counselor', 'Veterinarian'],
-      activities: ['Painting & drawing', 'Playing music', 'Hiking & nature', 'Cooking & baking', 'Photography', 'Dance'],
-      avoidances: ['Strict rules and rigid routines', 'Conflict and drama', 'Long-term abstract planning', 'Feeling constrained'],
-    ),
-  };
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -76,12 +57,10 @@ class _ResultPageState extends State<ResultPage> {
   Future<void> _loadResult() async {
     Map<String, dynamic>? resultData;
 
-    // 1. Check if arguments are passed (coming directly from the QuestionPage submit)
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map<String, dynamic>) {
       resultData = args;
     } else {
-      // 2. Load latest result from database if no arguments passed
       final user = SupabaseService.instance.currentUser;
       if (user != null) {
         final dbResult = await SupabaseService.instance.getLatestResult(user.id);
@@ -91,19 +70,11 @@ class _ResultPageState extends State<ResultPage> {
       }
     }
 
-    // 3. Fallback to mock data if everything else fails
     if (resultData == null) {
-      resultData = {
-        'mbti_type': 'ISFP',
-        'e_percent': 25.0,
-        'i_percent': 75.0,
-        'n_percent': 25.0,
-        's_percent': 75.0,
-        'f_percent': 75.0,
-        't_percent': 25.0,
-        'p_percent': 75.0,
-        'j_percent': 25.0,
-      };
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      return;
     }
 
     final mbtiType = resultData['mbti_type'] as String? ?? 'ISFP';
@@ -207,10 +178,7 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   MbtiProfile _getMbtiProfile(String mbti) {
-    if (_profiles.containsKey(mbti)) {
-      return _profiles[mbti]!;
-    }
-    // Dynamic generation fallback for missing types
+    // Dynamic generation fallback for missing types if database fails
     return MbtiProfile(
       type: mbti,
       nickname: _getMbtiTitle(mbti),
@@ -237,6 +205,23 @@ class _ResultPageState extends State<ResultPage> {
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E59B3)),
           ),
+        ),
+      );
+    }
+
+    if (_calculatedResult == null || _profile == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFAF6F0),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Text('Gagal memuat data hasil tes.', style: TextStyle(fontSize: 16)),
         ),
       );
     }
